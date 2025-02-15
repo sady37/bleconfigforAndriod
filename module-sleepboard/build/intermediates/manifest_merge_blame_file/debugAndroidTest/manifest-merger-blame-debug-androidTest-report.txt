@@ -1,0 +1,216 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.sleepboard.ble.test" >
+4
+5    <uses-sdk
+5-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:5:5-74
+6        android:minSdkVersion="28"
+6-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:5:15-41
+7        android:targetSdkVersion="28" />
+7-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:5:42-71
+8
+9    <instrumentation
+9-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:11:5-15:73
+10        android:name="androidx.test.runner.AndroidJUnitRunner"
+10-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:11:22-76
+11        android:functionalTest="false"
+11-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:14:22-52
+12        android:handleProfiling="false"
+12-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:13:22-53
+13        android:label="Tests for com.sleepboard.ble.test"
+13-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:15:22-71
+14        android:targetPackage="com.sleepboard.ble.test" />
+14-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:12:22-69
+15    <!-- 基础蓝牙权限 -->
+16    <uses-permission
+16-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:11:5-13:38
+17        android:name="android.permission.BLUETOOTH"
+17-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:12:9-52
+18        android:maxSdkVersion="30" />
+18-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:13:9-35
+19    <uses-permission
+19-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:14:5-16:38
+20        android:name="android.permission.BLUETOOTH_ADMIN"
+20-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:15:9-58
+21        android:maxSdkVersion="30" /> <!-- Android 12+ 蓝牙权限 -->
+21-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:16:9-35
+22    <uses-permission
+22-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:19:5-22:31
+23        android:name="android.permission.BLUETOOTH_SCAN"
+23-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:20:9-57
+24        android:usesPermissionFlags="neverForLocation" />
+24-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:21:9-55
+25    <uses-permission
+25-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:23:5-26:31
+26        android:name="android.permission.BLUETOOTH_CONNECT"
+26-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:24:9-60
+27        android:usesPermissionFlags="neverForLocation" /> <!-- 定位权限 -->
+27-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:25:9-55
+28    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+28-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:29:5-79
+28-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:29:22-76
+29    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> <!-- BLE特性声明 -->
+29-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:30:5-81
+29-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:30:22-78
+30    <uses-feature
+30-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:33:5-35:35
+31        android:name="android.hardware.bluetooth_le"
+31-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:34:9-53
+32        android:required="true" />
+32-->[:module-sleepboard] C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\merged_manifest\debug\AndroidManifest.xml:35:9-32
+33
+34    <uses-permission android:name="android.permission.REORDER_TASKS" />
+34-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:24:5-72
+34-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:24:22-69
+35
+36    <queries>
+36-->[androidx.test:runner:1.5.2] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\95bc4df4d8abdcf3c1ad587d4e2f3a6f\transformed\runner-1.5.2\AndroidManifest.xml:24:5-28:15
+37        <package android:name="androidx.test.orchestrator" />
+37-->[androidx.test:runner:1.5.2] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\95bc4df4d8abdcf3c1ad587d4e2f3a6f\transformed\runner-1.5.2\AndroidManifest.xml:25:9-62
+37-->[androidx.test:runner:1.5.2] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\95bc4df4d8abdcf3c1ad587d4e2f3a6f\transformed\runner-1.5.2\AndroidManifest.xml:25:18-59
+38        <package android:name="androidx.test.services" />
+38-->[androidx.test:runner:1.5.2] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\95bc4df4d8abdcf3c1ad587d4e2f3a6f\transformed\runner-1.5.2\AndroidManifest.xml:26:9-58
+38-->[androidx.test:runner:1.5.2] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\95bc4df4d8abdcf3c1ad587d4e2f3a6f\transformed\runner-1.5.2\AndroidManifest.xml:26:18-55
+39        <package android:name="com.google.android.apps.common.testing.services" />
+39-->[androidx.test:runner:1.5.2] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\95bc4df4d8abdcf3c1ad587d4e2f3a6f\transformed\runner-1.5.2\AndroidManifest.xml:27:9-83
+39-->[androidx.test:runner:1.5.2] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\95bc4df4d8abdcf3c1ad587d4e2f3a6f\transformed\runner-1.5.2\AndroidManifest.xml:27:18-80
+40    </queries>
+41
+42    <permission
+42-->[androidx.core:core:1.12.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\18920abfbce797be17ecbe2971ae2137\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+43        android:name="com.sleepboard.ble.test.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+43-->[androidx.core:core:1.12.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\18920abfbce797be17ecbe2971ae2137\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+44        android:protectionLevel="signature" />
+44-->[androidx.core:core:1.12.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\18920abfbce797be17ecbe2971ae2137\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+45
+46    <uses-permission android:name="com.sleepboard.ble.test.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+46-->[androidx.core:core:1.12.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\18920abfbce797be17ecbe2971ae2137\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+46-->[androidx.core:core:1.12.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\18920abfbce797be17ecbe2971ae2137\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+47
+48    <application
+48-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:7:5-9:19
+49        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+49-->[androidx.core:core:1.12.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\18920abfbce797be17ecbe2971ae2137\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+50        android:debuggable="true"
+51        android:extractNativeLibs="false" >
+52        <uses-library android:name="android.test.runner" />
+52-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:8:9-60
+52-->C:\Projects\app\bleconfig\module-sleepboard\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest6000100664184526019.xml:8:23-57
+53
+54        <activity
+54-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:27:9-34:20
+55            android:name="androidx.test.core.app.InstrumentationActivityInvoker$BootstrapActivity"
+55-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:28:13-99
+56            android:exported="true"
+56-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:29:13-36
+57            android:theme="@style/WhiteBackgroundTheme" >
+57-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:30:13-56
+58            <intent-filter android:priority="-100" >
+58-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:31:13-33:29
+58-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:31:28-51
+59                <category android:name="android.intent.category.LAUNCHER" />
+59-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:32:17-77
+59-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:32:27-74
+60            </intent-filter>
+61        </activity>
+62        <activity
+62-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:35:9-42:20
+63            android:name="androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity"
+63-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:36:13-95
+64            android:exported="true"
+64-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:37:13-36
+65            android:theme="@style/WhiteBackgroundTheme" >
+65-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:38:13-56
+66            <intent-filter android:priority="-100" >
+66-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:31:13-33:29
+66-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:31:28-51
+67                <category android:name="android.intent.category.LAUNCHER" />
+67-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:32:17-77
+67-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:32:27-74
+68            </intent-filter>
+69        </activity>
+70        <activity
+70-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:43:9-50:20
+71            android:name="androidx.test.core.app.InstrumentationActivityInvoker$EmptyFloatingActivity"
+71-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:44:13-103
+72            android:exported="true"
+72-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:45:13-36
+73            android:theme="@style/WhiteBackgroundDialogTheme" >
+73-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:46:13-62
+74            <intent-filter android:priority="-100" >
+74-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:31:13-33:29
+74-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:31:28-51
+75                <category android:name="android.intent.category.LAUNCHER" />
+75-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:32:17-77
+75-->[androidx.test:core:1.5.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\f563839eb57b42b06c654069ad61aa61\transformed\jetified-core-1.5.0\AndroidManifest.xml:32:27-74
+76            </intent-filter>
+77        </activity>
+78
+79        <provider
+79-->[androidx.emoji2:emoji2:1.2.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\e741e26ed80d828a3eb44158a9849ae3\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+80            android:name="androidx.startup.InitializationProvider"
+80-->[androidx.emoji2:emoji2:1.2.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\e741e26ed80d828a3eb44158a9849ae3\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:25:13-67
+81            android:authorities="com.sleepboard.ble.test.androidx-startup"
+81-->[androidx.emoji2:emoji2:1.2.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\e741e26ed80d828a3eb44158a9849ae3\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:26:13-68
+82            android:exported="false" >
+82-->[androidx.emoji2:emoji2:1.2.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\e741e26ed80d828a3eb44158a9849ae3\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:27:13-37
+83            <meta-data
+83-->[androidx.emoji2:emoji2:1.2.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\e741e26ed80d828a3eb44158a9849ae3\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+84                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+84-->[androidx.emoji2:emoji2:1.2.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\e741e26ed80d828a3eb44158a9849ae3\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:30:17-75
+85                android:value="androidx.startup" />
+85-->[androidx.emoji2:emoji2:1.2.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\e741e26ed80d828a3eb44158a9849ae3\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:31:17-49
+86            <meta-data
+86-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\6148a7db4f232b97aea308b66de20fea\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:29:13-31:52
+87                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+87-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\6148a7db4f232b97aea308b66de20fea\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:30:17-78
+88                android:value="androidx.startup" />
+88-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\6148a7db4f232b97aea308b66de20fea\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:31:17-49
+89            <meta-data
+89-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+90                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+90-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+91                android:value="androidx.startup" />
+91-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+92        </provider>
+93
+94        <receiver
+94-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+95            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+95-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+96            android:directBootAware="false"
+96-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+97            android:enabled="true"
+97-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+98            android:exported="true"
+98-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+99            android:permission="android.permission.DUMP" >
+99-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+100            <intent-filter>
+100-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+101                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+101-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+101-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+102            </intent-filter>
+103            <intent-filter>
+103-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+104                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+104-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+104-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+105            </intent-filter>
+106            <intent-filter>
+106-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+107                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+107-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+107-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+108            </intent-filter>
+109            <intent-filter>
+109-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+110                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+110-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+110-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\sady3721\.gradle\caches\8.10.2\transforms\5b9114aeaa7572e92d8b0c6b5be5774c\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+111            </intent-filter>
+112        </receiver>
+113    </application>
+114
+115</manifest>

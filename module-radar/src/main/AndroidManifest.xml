@@ -7,6 +7,7 @@
     <!-- 该模块可能包含的Activities -->
     <application>
         <!-- 如果有自定义Activity则在此声明 -->
+
     </application>
 
 </manifest>

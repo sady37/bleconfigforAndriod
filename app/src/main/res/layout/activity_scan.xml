@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- 提示文字 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/hint_keep_close"
+        android:textColor="#666666"
+        android:paddingBottom="16dp" />
+
+    <!-- 设备类型选择（单行显示） -->
+    <RadioGroup
+        android:id="@+id/radio_device_type"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Radar + TSBLU 组合 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Radar RadioButton -->
+            <RadioButton
+                android:id="@+id/radio_radar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Radar:"
+                android:checked="true"
+                android:layout_marginEnd="8dp" />
+
+            <!-- TSBLU 输入框 -->
+            <EditText
+                android:id="@+id/input_tsblu"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:hint="TSBLU"
+                android:text="TSBLU"
+                android:inputType="text"
+                android:background="@drawable/bg_input"
+                android:padding="8dp"
+                android:layout_marginEnd="16dp" />
+        </LinearLayout>
+
+        <!-- SleepBoard RadioButton -->
+        <RadioButton
+            android:id="@+id/radio_sleep"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/device_type_sleep" />
+
+    </RadioGroup>
+
+    <!-- 刷新提示和按钮 -->
+    <TextView
+        android:id="@+id/tv_refresh_tip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cannot find device? Click to refresh"
+        android:gravity="center"
+        android:padding="16dp"
+        android:textColor="@color/text_secondary"
+        android:drawableEnd="@drawable/ic_refresh_24"
+        android:drawablePadding="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground" />
+
+    <!-- 设备列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_devices"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false" />
+
+</LinearLayout>
