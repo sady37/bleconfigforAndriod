@@ -18,7 +18,9 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.graphics.drawable.VectorDrawable;
+
+import android.widget.ImageButton // 添加 ImageButton 的导入
+
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -32,6 +34,7 @@ class ScanActivity : AppCompatActivity() {
     private lateinit var radioRadar: RadioButton
     private lateinit var radioSleep: RadioButton
     private lateinit var rvDevices: RecyclerView
+    private lateinit var btnBack: ImageButton // 新增返回按钮
 
     // 数据存储
     private lateinit var configStorage: ConfigStorage
@@ -60,6 +63,12 @@ class ScanActivity : AppCompatActivity() {
         radioRadar = findViewById(R.id.radio_radar)
         radioSleep = findViewById(R.id.radio_sleep)
         rvDevices = findViewById(R.id.rv_devices)
+        btnBack = findViewById(R.id.btn_back) // 绑定返回按钮
+
+        // 设置返回按钮的点击事件
+        btnBack.setOnClickListener {
+            onBackButtonClick()
+        }
 
         // 初始化 RecyclerView
         val deviceAdapter = DeviceAdapter(deviceList, configStorage.getDeviceHistories()) { device ->
@@ -134,6 +143,12 @@ class ScanActivity : AppCompatActivity() {
                 sendBroadcast(intent)
             }
         }
+    }
+
+    // 处理返回按钮点击事件
+    private fun onBackButtonClick() {
+        // 返回到上一个界面
+        finish()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -242,4 +257,5 @@ class ScanActivity : AppCompatActivity() {
         const val EXTRA_DEVICE_ID = "device_id"
         const val EXTRA_DEVICE_MAC = "device_mac"
     }
+
 }

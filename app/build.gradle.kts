@@ -14,6 +14,9 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables.useSupportLibrary = true
+
+
     }
 
     buildTypes {
@@ -52,6 +55,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.material)
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.vectordrawable:vectordrawable:1.1.0")
     // Gson 依赖
     implementation("com.google.code.gson:gson:2.10.1")  // 添加 Gson 依赖

@@ -40,5 +40,10 @@
     <string name="toast_config_success">Configuration successful</string>
     <string name="toast_config_failed">Configuration failed</string>
     <string name="toast_invalid_port_format">Invalid port format. Use "tcp80", "udp80", or "80"</string>
+    <string name="cannot_find_device_click_to_refresh">Cannot find device? Click to refresh</string>
+
+    <!-- 返回主界面 -->
+    <string name="back">Back</string>
+    <string name="search_device">Search Device</string>
 
 </resources>
