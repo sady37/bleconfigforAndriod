@@ -1,21 +1,16 @@
 plugins {
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
 }
 
 android {
-    namespace = "com.wisefido"
+    namespace = "com.sleepboard.ble"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.wisefido"
         minSdk = 28
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables.useSupportLibrary = true
-
+        consumerProguardFiles("consumer-rules.pro")
 
     }
 
@@ -31,7 +26,6 @@ android {
 
     buildFeatures {
         viewBinding = true
-        dataBinding = true
     }
 
     compileOptions {
@@ -45,20 +39,21 @@ android {
 }
 
 dependencies {
-    // 依赖 A 厂和 B 厂模块
-    implementation(project(":module-radar"))
-    implementation(project(":module-sleepace"))
+    // B 厂 SDK 依赖
+    //implementation(files("libs/sdkcore.jar"))
+    //implementation(files("libs/wificonfigsdk.jar"))
+    api(files("libs/sdkcore.jar"))
+    api(files("libs/wificonfigsdk.jar"))
+    //api(files("libs/android-support-v4.jar"))
 
+    // AndroidX 支持库 (替代原来的 android-support-v4.jar)
+    implementation("androidx.core:core-ktx:1.7.0")
+    implementation("androidx.appcompat:appcompat:1.4.1")
 
     // Android 基础库
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.material)
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.vectordrawable:vectordrawable:1.1.0")
-    // Gson 依赖
-    implementation("com.google.code.gson:gson:2.10.1")  // 添加 Gson 依赖
-
 
     // 测试依赖
     testImplementation(libs.junit)

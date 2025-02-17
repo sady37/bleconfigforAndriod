@@ -1,0 +1,15 @@
+配置数据模型 (ConfigModels.kt) 的更改：
+
+
+简化了 DeviceInfo 结构，只保留必要字段
+DeviceType 枚举改为 radarQL 和 sleepace
+
+
+ScanActivity 的主要改动：
+
+
+Radio 按钮更新为三个选项：radarQL、sleepace、esp(自定义过滤)
+扫描实现分离：使用对应的 BleManager
+返回原始设备对象供配网使用
+移除了重复的权限检查
+增加了日志记录

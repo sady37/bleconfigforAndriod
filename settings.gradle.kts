@@ -19,4 +19,4 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 rootProject.name = "bleconfig"
 include(":app")
 include(":module-radar")
-include(":module-sleepboard")  // 添加这一行
+include(":module-sleepace")  // 添加这一行

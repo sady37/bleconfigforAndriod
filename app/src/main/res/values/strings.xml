@@ -5,6 +5,7 @@
     <string name="device_type_radar">RadarT:TSBLU</string>
     <string name="device_type_sleep">SleepBoard</string>
     <string name="device_type_all">All</string>
+    <string name="format_rssi">RSSI: %d</string>
 
     <!-- 提示文字 -->
     <string name="hint_keep_close">Please keep your phone close to the device</string>
@@ -41,6 +42,11 @@
     <string name="toast_config_failed">Configuration failed</string>
     <string name="toast_invalid_port_format">Invalid port format. Use "tcp80", "udp80", or "80"</string>
     <string name="cannot_find_device_click_to_refresh">Cannot find device? Click to refresh</string>
+    <string name="toast_get_wifi_failed">Failed to get WiFi information</string>
+    <string name="toast_invalid_device">invalid_device</string>
+    <string name="toast_config_exception">toast_config_exception</string>
+    <string name="recent_networks_count">Recent Networks (%1$d)</string>
+    <string name="recent_servers_count">Recent Servers (%1$d)</string>
 
     <!-- 返回主界面 -->
     <string name="back">Back</string>
