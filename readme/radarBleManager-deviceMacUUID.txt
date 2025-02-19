@@ -1,10 +1,10 @@
 /**
  * File: RadarBleManager.kt
- * Path: module-radar/src/main/java/com/bleconfig/radar/RadarBleManager.kt
+ * Path: module-radar/src/main/java/com/espressif/espblufi/RadarBleManager.kt 
  *
  * A厂(Radar)蓝牙管理类，封装 BlufiClient 实现
- */
-package com.espressif.espblufi
+ ** /
+ package com.espressif.espblufi
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
@@ -17,7 +17,6 @@ import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import android.bluetooth.le.ScanFilter
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -29,16 +28,19 @@ import com.espressif.espblufi.response.BlufiStatusResponse
 import com.espressif.espblufi.response.BlufiVersionResponse
 
 /**
- * File: RadarBleManager.kt
- * Path: module-radar/src/main/java/com/bleconfig/radar/RadarBleManager.kt
- * A厂蓝牙管理类，基于原生蓝牙扫描和 ESP BlufiClient 实现
- *  通信: 封装 BlufiClient，负责连接和配网
- * 修改说明：
- * 1. 修改扫描过滤机制，不使用原生 ScanFilter，改为在回调中手动过滤前缀
- * 2. 简化扫描接口，统一处理设备名称过滤
- * 3. 增加详细日志和错误处理
+ * BLE扫描过滤类型
  */
+enum class FilterType {
+    DeviceName,  // 按设备名称过滤
+    MAC,         // 按MAC地址过滤
+    UUID         // 按UUID过滤
+}
 
+/**
+ * A厂雷达设备蓝牙管理类
+ * - 扫描: 使用系统原生扫描，支持多种过滤方式
+ * - 通信: 封装 BlufiClient，负责连接和配网
+ */
 @SuppressLint("MissingPermission")
 class RadarBleManager private constructor(private val context: Context) {
 
@@ -57,124 +59,116 @@ class RadarBleManager private constructor(private val context: Context) {
         }
     }
 
-    // 系统服务
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private var blufiClient: BlufiClient? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // 扫描状态
     private var isScanning = false
-    private var currentFilter: String? = null
-    private var scanCallback: ((ScanResult) -> Unit)? = null
-
-    // 配置回调
+    private var filterPrefix: String? = null
+    private var filterType: FilterType = FilterType.DeviceName
     private var configureCallback: ((Boolean) -> Unit)? = null
 
+    // 扫描回调
+    private var scanCallback: ((ScanResult) -> Unit)? = null
+
     /**
-     * 设置扫描结果回调
-     * @param callback 扫描结果回调，在主线程中调用
+     * 设置扫描回调
      */
     fun setScanCallback(callback: (ScanResult) -> Unit) {
         scanCallback = callback
     }
 
     /**
-     * 开始蓝牙扫描，支持设备名称前缀过滤
-     * @param filter 设备名称前缀，null 表示不过滤
-     * 注意：
-     * 1. 必须具有 BLUETOOTH_SCAN 权限
-     * 2. 蓝牙必须已开启
-     * 3. 扫描结果通过 scanCallback 返回
+     * 开始扫描
+     * @param filterPrefix 过滤值，null 或空值时不过滤
+     * @param filterType 过滤类型，默认为设备名称过滤
      */
-    fun startScan(filter: String? = null) {
-        // 避免重复扫描
-        if (isScanning) {
-            Log.w(TAG, "Scan already in progress")
-            return
-        }
+    fun startScan(filterPrefix: String?, filterType: FilterType = FilterType.DeviceName) {
+        if (isScanning) return
 
-        // 检查蓝牙适配器
-        val scanner = bluetoothAdapter?.bluetoothLeScanner
-        if (scanner == null) {
-            Log.e(TAG, "Bluetooth LE scanner not available")
-            return
-        }
-
-        isScanning = true
-        currentFilter = filter
+        this.filterPrefix = filterPrefix
+        this.filterType = filterType
         
-        // 配置扫描参数
-        val settings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)  // 使用低延迟模式
-            .build()
+        bluetoothAdapter?.bluetoothLeScanner?.let { scanner ->
+            isScanning = true
 
-        try {
-            // 不使用系统过滤器，在回调中手动过滤
-            scanner.startScan(null, settings, leScanCallback)
-            Log.d(TAG, "Started BLE scan with manual filtering for prefix: ${filter ?: "none"}")
-        } catch (e: Exception) {
-            isScanning = false
-            Log.e(TAG, "Failed to start scan", e)
+            val settings = ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build()
+
+            try {
+                scanner.startScan(null, settings, leScanCallback)
+                Log.d(TAG, "Started scanning with filter: ${filterPrefix ?: "none"}, type: $filterType")
+            } catch (e: Exception) {
+                Log.e(TAG, "Start scan failed: ${e.message}")
+            }
         }
     }
 
     /**
-     * 原生蓝牙扫描回调
-     * 注意：回调发生在蓝牙线程，需要切换到主线程处理
+     * 停止扫描
      */
+    fun stopScan() {
+        if (!isScanning) return
+
+        bluetoothAdapter?.bluetoothLeScanner?.let { scanner ->
+            isScanning = false
+            try {
+                scanner.stopScan(leScanCallback)
+                Log.d(TAG, "Scan stopped")
+            } catch (e: Exception) {
+                Log.e(TAG, "Stop scan failed: ${e.message}")
+            }
+        }
+    }
+
     private val leScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            // 获取设备名称
-            val deviceName = result.device.name ?: ""
-            
-            // 手动进行前缀过滤
-            if (currentFilter == null || 
-                currentFilter!!.isEmpty() || 
-                deviceName.startsWith(currentFilter!!)) {
-                
-                // 将过滤后的扫描结果回调到主线程
-                mainHandler.post {
-                    scanCallback?.invoke(result)
+            // 只有在设置了过滤条件时才进行过滤
+            val prefix = filterPrefix
+            if (!prefix.isNullOrEmpty()) {
+                when (filterType) {
+                    FilterType.DeviceName -> {
+                        val deviceName = result.device.name ?: return
+                        if (!deviceName.startsWith(prefix, ignoreCase = true)) {
+                            Log.d(TAG, "Filtered out device by name: $deviceName")
+                            return
+                        }
+                    }
+                    FilterType.MAC -> {
+                        val deviceMac = result.device.address
+                        if (!deviceMac.replace(":", "")
+                                .replace("-", "")
+                                .contains(prefix, ignoreCase = true)) {
+                            Log.d(TAG, "Filtered out device by MAC: $deviceMac")
+                            return
+                        }
+                    }
+                    FilterType.UUID -> {
+                        val scanRecord = result.scanRecord ?: return
+                        val serviceUuids = scanRecord.serviceUuids ?: return
+                        val matchFound = serviceUuids.any { uuid ->
+                            uuid.toString().contains(prefix, ignoreCase = true)
+                        }
+                        if (!matchFound) {
+                            Log.d(TAG, "Filtered out device by UUID: ${serviceUuids.joinToString()}")
+                            return
+                        }
+                    }
                 }
+            }
+
+            mainHandler.post {
+                scanCallback?.invoke(result)
             }
         }
 
         override fun onScanFailed(errorCode: Int) {
             Log.e(TAG, "Scan failed with error: $errorCode")
             isScanning = false
-
-            // 错误码含义：
-            // SCAN_FAILED_ALREADY_STARTED = 1
-            // SCAN_FAILED_APPLICATION_REGISTRATION_FAILED = 2
-            // SCAN_FAILED_INTERNAL_ERROR = 3
-            // SCAN_FAILED_FEATURE_UNSUPPORTED = 4
-            // SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES = 5
         }
     }
 
-    /**
-     * 停止扫描
-     * 在不需要扫描时应主动调用，以节省电量
-     */
-    fun stopScan() {
-        if (!isScanning) {
-            return
-        }
-
-        bluetoothAdapter?.bluetoothLeScanner?.let { scanner ->
-            isScanning = false
-            currentFilter = null
-            try {
-                scanner.stopScan(leScanCallback)
-                Log.d(TAG, "Stopped BLE scan")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to stop scan", e)
-            }
-        }
-    }
-    
-    // 其余代码保持不变...
-    
     /**
      * 连接设备
      */
@@ -219,10 +213,10 @@ class RadarBleManager private constructor(private val context: Context) {
     private fun createBlufiCallback(): BlufiCallback {
         return object : BlufiCallback() {
             override fun onGattPrepared(client: BlufiClient,
-                                        gatt: BluetoothGatt,
-                                        service: BluetoothGattService?,
-                                        writeChar: BluetoothGattCharacteristic?,
-                                        notifyChar: BluetoothGattCharacteristic?) {
+                                      gatt: BluetoothGatt,
+                                      service: BluetoothGattService?,
+                                      writeChar: BluetoothGattCharacteristic?,
+                                      notifyChar: BluetoothGattCharacteristic?) {
                 if (service == null || writeChar == null || notifyChar == null) {
                     Log.e(TAG, "Discover service failed")
                     disconnect()
@@ -257,7 +251,7 @@ class RadarBleManager private constructor(private val context: Context) {
                 when (errCode) {
                     CODE_GATT_WRITE_TIMEOUT -> {
                         disconnect()
-                   }
+                    }
                 }
             }
         }

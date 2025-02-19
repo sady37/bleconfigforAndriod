@@ -23,4 +23,8 @@
     <color name="signal_strong">#4CAF50</color>      <!-- Green 500 -->
     <color name="signal_medium">#FFC107</color>      <!-- Amber 500 -->
     <color name="signal_weak">#F44336</color>        <!-- Red 500 -->
+
+    <color name="white">#FFFFFF</color>
+    <color name="divider">#EEEEEE</color>
+
 </resources>

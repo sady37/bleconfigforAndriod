@@ -1,10 +1,10 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- App 名称 -->
     <string name="app_name">WiseFido BLE</string>
     <!-- 设备类型 -->
-    <string name="device_type_radar">RadarT:TSBLU</string>
+    <string name="device_type_radar">Radar</string>
     <string name="device_type_sleep">SleepBoard</string>
-    <string name="device_type_all">All</string>
+    <string name="filter_deviceName">Filter DeviceName </string>
     <string name="format_rssi">RSSI: %d</string>
 
     <!-- 提示文字 -->
@@ -47,9 +47,21 @@
     <string name="toast_config_exception">toast_config_exception</string>
     <string name="recent_networks_count">Recent Networks (%1$d)</string>
     <string name="recent_servers_count">Recent Servers (%1$d)</string>
+    <string name="permissions_required">Bluetooth and Location permission required</string>
 
-    <!-- 返回主界面 -->
+    <!-- ScanActivity 相关文本 -->
     <string name="back">Back</string>
     <string name="search_device">Search Device</string>
+    <string name="scan">SCAN</string>
+    <string name="stop">STOP</string>
+    <string name="radar_device_name">Radar Device Name</string>
+    <string name="filter_type">Filter Type</string>
+    <string name="filter_device_name">Device Name</string>
+    <string name="filter_mac">MAC Address</string>
+    <string name="filter_uuid">UUID</string>
+    <string name="bluetooth_not_supported">Device does not support Bluetooth</string>
+    <string name="bluetooth_permission_required">Bluetooth permission required</string>
+    <string name="location_permission_required">Location permission required</string>
+    <string name="config">Configuration</string>
 
 </resources>

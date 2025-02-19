@@ -1,9 +1,9 @@
 /**
  * File: RadarBleManager.kt
- * Path: module-radar/src/main/java/com/bleconfig/radar/RadarBleManager.kt
+ * Path: module-radar/src/main/java/com/espressif/espblufi/RadarBleManager.kt
  *
  * A厂(Radar)蓝牙管理类，封装 BlufiClient 实现
- */
+ * */
 package com.espressif.espblufi
 
 import android.annotation.SuppressLint
@@ -28,8 +28,17 @@ import com.espressif.espblufi.response.BlufiStatusResponse
 import com.espressif.espblufi.response.BlufiVersionResponse
 
 /**
+ * BLE扫描过滤类型
+ */
+object FilterType {
+    const val DEVICE_NAME = "DeviceName"
+    const val MAC = "MAC"
+    const val UUID = "UUID"
+}
+
+/**
  * A厂雷达设备蓝牙管理类
- * - 扫描: 使用系统原生扫描，支持 TSBLU 前缀过滤
+ * - 扫描: 使用系统原生扫描，支持多种过滤方式
  * - 通信: 封装 BlufiClient，负责连接和配网
  */
 @SuppressLint("MissingPermission")
@@ -37,7 +46,7 @@ class RadarBleManager private constructor(private val context: Context) {
 
     companion object {
         private const val TAG = "RadarBleManager"
-        private const val DEVICE_PREFIX = "TSBLU"
+        private const val SCAN_TIMEOUT = 10000L  // 扫描超时时间 10秒
 
         @Volatile
         private var instance: RadarBleManager? = null
@@ -55,8 +64,14 @@ class RadarBleManager private constructor(private val context: Context) {
     private var blufiClient: BlufiClient? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    private val scanTimeoutRunnable = Runnable {
+        Log.d(TAG, "Scan timeout")
+        stopScan()
+    }
+
     private var isScanning = false
-    private var useFilter = true
+    private var filterPrefix: String? = null
+    private var filterType: String = FilterType.DEVICE_NAME
     private var configureCallback: ((Boolean) -> Unit)? = null
 
     // 扫描回调
@@ -70,17 +85,22 @@ class RadarBleManager private constructor(private val context: Context) {
     }
 
     /**
-     * 设置是否启用 TSBLU 过滤
-     */
-    fun enableFilter(enable: Boolean) {
-        useFilter = enable
-    }
-
-    /**
      * 开始扫描
+     * @param filterPrefix 过滤值，null 或空值时不过滤
+     * @param filterType 过滤类型，默认为设备名称过滤
      */
-    fun startScan() {
+    fun startScan(filterPrefix: String?, filterType: String = FilterType.DEVICE_NAME){
+        // 验证 filterType 参数
+        if (filterType != FilterType.DEVICE_NAME &&
+            filterType != FilterType.MAC &&
+            filterType != FilterType.UUID) {
+            Log.e(TAG, "Invalid filter type: $filterType")
+            return
+        }
         if (isScanning) return
+
+        this.filterPrefix = filterPrefix
+        this.filterType = filterType
 
         bluetoothAdapter?.bluetoothLeScanner?.let { scanner ->
             isScanning = true
@@ -91,6 +111,8 @@ class RadarBleManager private constructor(private val context: Context) {
 
             try {
                 scanner.startScan(null, settings, leScanCallback)
+                mainHandler.postDelayed(scanTimeoutRunnable, SCAN_TIMEOUT)
+                Log.d(TAG, "Started scanning with filter: ${filterPrefix ?: "none"}, type: $filterType")
             } catch (e: Exception) {
                 Log.e(TAG, "Start scan failed: ${e.message}")
             }
@@ -103,10 +125,13 @@ class RadarBleManager private constructor(private val context: Context) {
     fun stopScan() {
         if (!isScanning) return
 
+        mainHandler.removeCallbacks(scanTimeoutRunnable)
+
         bluetoothAdapter?.bluetoothLeScanner?.let { scanner ->
             isScanning = false
             try {
                 scanner.stopScan(leScanCallback)
+                Log.d(TAG, "Scan stopped")
             } catch (e: Exception) {
                 Log.e(TAG, "Stop scan failed: ${e.message}")
             }
@@ -115,13 +140,42 @@ class RadarBleManager private constructor(private val context: Context) {
 
     private val leScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val deviceName = result.device.name ?: return
-
-            // TSBLU 前缀过滤
-            if (!useFilter || deviceName.startsWith(DEVICE_PREFIX)) {
-                mainHandler.post {
-                    scanCallback?.invoke(result)
+            // 只有在设置了过滤条件时才进行过滤
+            val prefix = filterPrefix
+            if (!prefix.isNullOrEmpty()) {
+                when (filterType) {
+                    FilterType.DEVICE_NAME -> {
+                        val deviceName = result.device.name ?: return
+                        if (!deviceName.contains(prefix, ignoreCase = true)) {
+                            Log.d(TAG, "Filtered out device by name: $deviceName")
+                            return
+                        }
+                    }
+                    FilterType.MAC -> {
+                        val deviceMac = result.device.address
+                        if (!deviceMac.replace(":", "")
+                                .replace("-", "")
+                                .contains(prefix, ignoreCase = true)) {
+                            Log.d(TAG, "Filtered out device by MAC: $deviceMac")
+                            return
+                        }
+                    }
+                    FilterType.UUID -> {
+                        val scanRecord = result.scanRecord ?: return
+                        val serviceUuids = scanRecord.serviceUuids ?: return
+                        val matchFound = serviceUuids.any { uuid ->
+                            uuid.toString().contains(prefix, ignoreCase = true)
+                        }
+                        if (!matchFound) {
+                            Log.d(TAG, "Filtered out device by UUID: ${serviceUuids.joinToString()}")
+                            return
+                        }
+                    }
                 }
+            }
+            Log.d(TAG, "Device passed filter: ${result.device.name}")
+            mainHandler.post {
+                scanCallback?.invoke(result)
             }
         }
 
@@ -270,6 +324,7 @@ class RadarBleManager private constructor(private val context: Context) {
     fun release() {
         stopScan()
         disconnect()
+        mainHandler.removeCallbacksAndMessages(null)
         instance = null
     }
 }

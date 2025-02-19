@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- Header -->
+    <RelativeLayout
+        android:id="@+id/layout_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/screen_padding"
+        android:background="@color/surface"
+        android:elevation="1dp">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/input_height"
+            android:layout_height="@dimen/input_height"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:padding="@dimen/spacing_medium"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back_24"
+            android:contentDescription="@string/back" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="@string/search_device"
+            android:textAppearance="@style/TextAppearance.App.Title" />
+    </RelativeLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <!-- Device Type Selection and Filter -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/screen_padding"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/surface">
+
+        <RadioGroup
+            android:id="@+id/radio_device_type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/radio_radar"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/input_height"
+                android:text="@string/device_type_radar"
+                android:textAppearance="@style/TextAppearance.App.Body"
+                android:layout_marginEnd="@dimen/spacing_small"
+                android:paddingHorizontal="@dimen/spacing_small"/>
+
+            <RadioButton
+                android:id="@+id/radio_sleepboard"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/input_height"
+                android:text="@string/device_type_sleep"
+                android:textAppearance="@style/TextAppearance.App.Body"
+                android:layout_marginEnd="@dimen/spacing_small"
+                android:paddingHorizontal="@dimen/spacing_small"/>
+
+            <RadioButton
+                android:id="@+id/radio_devicename"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/input_height"
+                android:text="DeviceName"
+                android:textAppearance="@style/TextAppearance.App.Body"
+                android:paddingHorizontal="@dimen/spacing_small"/>
+        </RadioGroup>
+
+        <!-- Filter Input -->
+        <EditText
+            android:id="@+id/input_devicename"
+            android:layout_width="140dp"
+            android:layout_height="@dimen/input_height"
+            android:layout_marginStart="@dimen/spacing_tiny"
+            android:background="@drawable/bg_input"
+            android:hint="@string/filter_deviceName"
+            android:inputType="text"
+            android:textColor="@color/text_primary"
+            android:importantForAutofill="no"
+            android:textAppearance="@style/TextAppearance.App.Body"
+            android:textColorHint="@color/text_hint"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:imeOptions="actionDone"/>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <!-- Refresh Button -->
+    <TextView
+        android:id="@+id/btn_refresh"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/screen_padding"
+        android:gravity="center"
+        android:drawableEnd="@drawable/ic_refresh_24"
+        android:drawablePadding="@dimen/spacing_small"
+        android:text="@string/cannot_find_device_click_to_refresh"
+        android:textAppearance="@style/TextAppearance.App.Body"
+        android:background="?attr/selectableItemBackground"/>
+
+    <!-- Device List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        tools:listitem="@layout/item_device"/>
+
+</LinearLayout>

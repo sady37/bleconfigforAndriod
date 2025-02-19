@@ -95,9 +95,54 @@ class ConfigStorage(context: Context) {
         return gson.fromJson(json, type)
     }
 
+    // 保存雷达设备名称
+    fun saveRadarDeviceName(radarDeviceName: String) {
+        prefs.edit().apply {
+            putString(KEY_RADAR_DEVICE_NAME, radarDeviceName)
+            apply()
+        }
+    }
+
+    // 获取雷达设备名称
+    fun getRadarDeviceName(): String {
+        return prefs.getString(KEY_RADAR_DEVICE_NAME, DefaultConfig.RADAR_DEVICE_NAME)
+            ?: DefaultConfig.RADAR_DEVICE_NAME
+    }
+
+    // 保存过滤器类型
+    fun saveFilterType(filterType: String) {
+        prefs.edit().apply {
+            putString(KEY_FILTER_TYPE, filterType)
+            apply()
+        }
+    }
+
+    // 获取过滤器类型
+    fun getFilterType(): String {
+        return prefs.getString(KEY_FILTER_TYPE, DefaultConfig.DEFAULT_FILTER_TYPE)
+            ?: DefaultConfig.DEFAULT_FILTER_TYPE
+    }
+
+    // 保存过滤器前缀
+    fun saveFilterPrefix(filterPrefix: String) {
+        prefs.edit().apply {
+            putString(KEY_FILTER_PREFIX, filterPrefix)
+            apply()
+        }
+    }
+
+    // 获取过滤器前缀
+    fun getFilterPrefix(): String {
+        return prefs.getString(KEY_FILTER_PREFIX, DefaultConfig.DEFAULT_FILTER_PREFIX)
+            ?: DefaultConfig.DEFAULT_FILTER_PREFIX
+    }
+
     companion object {
         private const val KEY_SERVER_CONFIGS = "server_configs"
         private const val KEY_WIFI_CONFIGS = "wifi_configs"
         private const val KEY_DEVICE_HISTORIES = "device_histories"
+        private const val KEY_RADAR_DEVICE_NAME = "radar_device_name"
+        private const val KEY_FILTER_TYPE = "filter_type"
+        private const val KEY_FILTER_PREFIX = "filter_prefix"
     }
 }

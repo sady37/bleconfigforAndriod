@@ -55,6 +55,27 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
+        private const val PERMISSION_REQUEST_CODE = 100
+        // 定义所需权限
+        private val REQUIRED_PERMISSIONS = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_WIFI_STATE,
+                Manifest.permission.CHANGE_WIFI_STATE
+            )
+        } else {
+            arrayOf(
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_WIFI_STATE,
+                Manifest.permission.CHANGE_WIFI_STATE
+            )
+        }
     }
 
     // region 属性定义
@@ -72,12 +93,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var configStorage: ConfigStorage
     private var lastScannedBleDevice: BleDevice? = null
+    private var selectedDevice: DeviceInfo? = null
 
 
-    // 当前选中的设备信息
-    private var deviceType: String? = null
-    private var deviceId: String? = null
-    private var deviceMac: String? = null
+
+
 
     // Activity Result API
 // 扫描结果处理需要修改为：
@@ -87,27 +107,14 @@ class MainActivity : AppCompatActivity() {
     ) { result ->
         if (result.resultCode == RESULT_OK) {
             result.data?.let { intent ->
-                deviceType = intent.getStringExtra(ScanActivity.EXTRA_DEVICE_TYPE)
-                // 根据设备类型获取对应的设备对象
-                when (deviceType) {
-                    "radarQL", "ESP" -> {
-                        val scanResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            intent.getParcelableExtra(ScanActivity.EXTRA_DEVICE, ScanResult::class.java)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            intent.getParcelableExtra(ScanActivity.EXTRA_DEVICE)
-                        }
-                        deviceId = scanResult?.device?.name
-                        deviceMac = scanResult?.device?.address
-                    }
-                    "sleepace" -> {
-                        val bleDevice = intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE) as? BleDevice
-                        deviceId = bleDevice?.deviceName
-                        deviceMac = bleDevice?.address
-                        lastScannedBleDevice = bleDevice
-                    }
+                selectedDevice = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE_INFO, DeviceInfo::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE_INFO) as? DeviceInfo
                 }
-                btnScan.text = deviceId ?: getString(R.string.hint_select_device)
+
+                btnScan.text = selectedDevice?.deviceName ?: getString(R.string.hint_select_device)
             }
         }
     }
@@ -229,9 +236,33 @@ class MainActivity : AppCompatActivity() {
 
     // region 扫描和配网操作
     private fun startScanActivity() {
+        if (REQUIRED_PERMISSIONS.any { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }) {
+            requestPermissions(REQUIRED_PERMISSIONS, PERMISSION_REQUEST_CODE)
+            return
+        }
+
         saveCurrentConfig()
         scanLauncher.launch(Intent(this, ScanActivity::class.java))
     }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    // 所有权限都获取成功，启动扫描
+                    startScanActivity()
+                } else {
+                    showToast(getString(R.string.permissions_required))
+                }
+            }
+        }
+    }
+
 
     private fun handlePairClick() {
         saveCurrentConfig()
@@ -240,14 +271,15 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        if (deviceType == null || deviceMac == null) {
+        if (selectedDevice == null) {
             showToast(getString(R.string.toast_select_device_first))
             return
         }
 
-        when (deviceType) {
-            "radarQL" -> startRadarConfig()
-            "sleepace" -> startSleepConfig()
+        when (selectedDevice?.productorName) {
+            Productor.radarQL -> startRadarConfig()
+            Productor.sleepBoardHS -> startSleepConfig()
+            Productor.espBle -> startRadarConfig()
             else -> showToast(getString(R.string.toast_unknown_device_type))
         }
     }
@@ -255,6 +287,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * A厂(Radar)配网实现
      */
+    @SuppressLint("MissingPermission")
     private fun startRadarConfig() {
         val radarManager = RadarBleManager.getInstance(this)
         val serverConfig = getCurrentServerConfig() ?: return
@@ -269,7 +302,7 @@ class MainActivity : AppCompatActivity() {
 
         // 2. 连接设备
         val device = BluetoothAdapter.getDefaultAdapter()
-            ?.getRemoteDevice(deviceMac) ?: return
+            ?.getRemoteDevice(selectedDevice?.macAddress) ?: return
 
         // 3. 开始配网
         radarManager.connect(device)
@@ -280,6 +313,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun startSleepConfig() {
         val bleDevice = lastScannedBleDevice
         if (bleDevice == null) {
@@ -397,21 +431,33 @@ class MainActivity : AppCompatActivity() {
     // endregion
 
     // region 结果处理
+    @SuppressLint("MissingPermission")
     private fun handleConfigResult(success: Boolean) {
         if (success) {
-            deviceMac?.let { mac ->
-                getCurrentServerConfig()?.let { serverConfig ->
-                    getCurrentWifiConfig()?.let { wifiConfig ->
-                        configStorage.saveDeviceHistory(
-                            DeviceHistory(
-                                deviceType = com.wisefido.DeviceType.valueOf(deviceType ?: "radarQL"),  // 使用我们自己的 DeviceTyp
-                                macAddress = mac,
-                                rssi = -60,
-                                serverConfig = serverConfig,
-                                wifiConfig = wifiConfig
-                            )
+            // 获取设备的 MAC 地址和名称
+            val deviceMac = when (val device = selectedDevice?.originalDevice) {
+                is ScanResult -> device.device.address
+                is BleDevice -> device.address
+                else -> return
+            }
+
+            val deviceName = when (val device = selectedDevice?.originalDevice) {
+                is ScanResult -> device.device.name ?: ""
+                is BleDevice -> device.deviceName ?: ""
+                else -> return
+            }
+
+            getCurrentServerConfig()?.let { serverConfig ->
+                getCurrentWifiConfig()?.let { wifiConfig ->
+                    configStorage.saveDeviceHistory(
+                        DeviceHistory(
+                            deviceName = deviceName,
+                            macAddress = deviceMac,
+                            rssi = selectedDevice?.rssi ?: -255,
+                            serverConfig = serverConfig,
+                            wifiConfig = wifiConfig
                         )
-                    }
+                    )
                 }
             }
             loadRecentConfigs()

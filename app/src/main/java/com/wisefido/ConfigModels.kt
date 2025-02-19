@@ -11,14 +11,11 @@
  */
 package com.wisefido
 
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.le.ScanResult
 import java.io.Serializable
 
 /**
  * ===== 1. Android 蓝牙底层扩展 =====
  */
-
 
 /**
  * ===== 2. ESP 芯片层扩展 =====
@@ -39,10 +36,21 @@ data class EspConfigResult(
 /**
  * ===== 3. 设备厂家层 =====
  */
-// 设备类型枚举
-enum class DeviceType {
-    radarQL,       // A厂(雷达)设备
-    sleepace   // B厂(睡眠板)设备
+// 生产厂家枚举
+object Productor {
+    //A厂
+    const val radarQL = "radarQL"    // A厂
+    // 睡眠监测类产品
+    const val sleepBoardHS= "SleepBoardHS"  // B厂睡眠板
+    //ESP bluetooth
+    const val espBle= "espBle"  // Esp bluetooth chip
+}
+
+// 过滤器类型枚举
+object FilterType {
+    const val DEVICE_NAME = "DeviceName"
+    const val MAC = "MAC"
+    const val UUID = "UUID"
 }
 
 // A. 通用配置
@@ -64,7 +72,7 @@ data class WifiConfig(
 
 // 配网历史
 data class DeviceHistory(
-    val deviceType: DeviceType,  // 设备类型
+    val deviceName: String,  // 设备类型
     val macAddress: String,     // 设备 MAC 地址
     val rssi: Int,              // 信号强度
     val configTime: Long = System.currentTimeMillis(),  // 配网时间
@@ -74,10 +82,11 @@ data class DeviceHistory(
 
 // 统一的扫描结果
 data class DeviceInfo(
-    val type: DeviceType,      // 设备类型
+    val productorName: String,    //产品厂家如radarQL, sleepBoardHS
+    val deviceName: String,      // 设备类型,扫描出来的
     val deviceId: String,      // 设备ID - 用于显示的设备标识
     val macAddress: String,    // MAC地址 - 用于匹配历史配网记录
-    val rssi: Int,            // 信号强度
+    val rssi: Int = -255,            // 信号强度,默认值 =-255即没有获取
     val originalDevice: Any?   // 原始设备对象 - 用于配网
 ) : Serializable
 
@@ -127,4 +136,13 @@ object StatusCode {
     const val NOT_ENABLE: Short = -4
     const val PARAMETER_ERROR: Short = -5
     const val CERTIFICATION_EXPIRED: Short = -6
+}
+
+/**
+ * 默认配置值
+ */
+object DefaultConfig {
+    const val RADAR_DEVICE_NAME = "TSBLU" // 默认雷达设备名称
+    const val DEFAULT_FILTER_TYPE = FilterType.DEVICE_NAME // 默认过滤器类型
+    const val DEFAULT_FILTER_PREFIX = "" // 默认过滤器前缀
 }
