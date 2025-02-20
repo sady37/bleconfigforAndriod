@@ -18,7 +18,6 @@ package com.wisefido
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
-import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.view.View
 import android.widget.PopupMenu
@@ -33,6 +32,10 @@ import android.util.Log
 import android.os.Build
 import android.Manifest
 import android.content.pm.PackageManager
+import android.widget.TextView
+import android.widget.ImageButton  // [新增] 解决ImageButton未定义的问题
+
+
 
 // A厂 SDK
 import com.espressif.espblufi.params.BlufiConfigureParams
@@ -43,12 +46,10 @@ import com.espressif.espblufi.RadarBleManager
 import com.bleconfig.sleepace.SleePaceBleManager  // B厂管理类
 import com.sleepace.sdk.constant.StatusCode
 import com.sleepace.sdk.domain.BleDevice
-import com.sleepace.sdk.manager.DeviceType
 
 import android.bluetooth.le.ScanResult  // A 厂扫描结果
 
 //自已的引用
-import com.wisefido.ConfigStorage
 
 
 class MainActivity : AppCompatActivity() {
@@ -79,7 +80,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     // region 属性定义
-    private lateinit var btnScan: MaterialButton
+    //private lateinit var etDeviceId: TextInputEditText
+    //private lateinit var btnScan: MaterialButton
     private lateinit var etServerAddress: TextInputEditText
     private lateinit var etServerPort: TextInputEditText
     private lateinit var etWifiSsid: TextInputEditText
@@ -87,11 +89,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnPair: MaterialButton
     private lateinit var tvRecentServer: MaterialTextView
     private lateinit var tvRecentWifi: MaterialTextView
-
     private lateinit var layoutServerHistory: View
     private lateinit var layoutWifiHistory: View
-
-    private lateinit var configStorage: ConfigStorage
+    private lateinit var tvDeviceName: TextView
+    private lateinit var tvDeviceId: TextView
+    private lateinit var btnSearch: ImageButton
+    private lateinit var layoutDeviceInfo: View
+    private lateinit var configScan: ConfigStorage
     private var lastScannedBleDevice: BleDevice? = null
     private var selectedDevice: DeviceInfo? = null
 
@@ -106,17 +110,83 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
+            Log.d(TAG, "Scan result received with RESULT_OK")
             result.data?.let { intent ->
-                selectedDevice = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE_INFO, DeviceInfo::class.java)
+                // 打印所有传递的数据键
+                Log.d(TAG, "Intent extras: ${intent.extras?.keySet()?.joinToString()}")
+
+                // 获取基础数据
+                val productorName = intent.getStringExtra("productor_name")
+                val rssi = intent.getIntExtra("rssi", 0)
+                Log.d(TAG, "Received productor: $productorName, rssi: $rssi")
+
+                // 获取原始设备对象
+                val originalDevice = if (productorName == Productor.sleepBoardHS) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE, BleDevice::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE) as? BleDevice
+                    }
                 } else {
-                    @Suppress("DEPRECATION")
-                    intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE_INFO) as? DeviceInfo
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableExtra(ScanActivity.EXTRA_DEVICE, ScanResult::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra(ScanActivity.EXTRA_DEVICE)
+                    }
                 }
 
-                btnScan.text = selectedDevice?.deviceName ?: getString(R.string.hint_select_device)
+                Log.d(TAG, "Original device: $originalDevice")
+
+                selectedDevice = when (originalDevice) {
+                    is ScanResult -> {
+                        Log.d(TAG, "Processing ScanResult - Name: ${originalDevice.device.name}, Address: ${originalDevice.device.address}")
+                        DeviceInfo(
+                            productorName = productorName ?: "",
+                            deviceName = originalDevice.device.name ?: "",
+                            deviceId = originalDevice.device.name ?: "",
+                            macAddress = originalDevice.device.address,
+                            rssi = rssi,
+                            originalDevice = originalDevice
+                        )
+                    }
+                    is BleDevice -> {
+                        Log.d(TAG, "Processing BleDevice - Name: ${originalDevice.deviceName}, Address: ${originalDevice.address}")
+                        DeviceInfo(
+                            productorName = productorName ?: "",
+                            deviceName = originalDevice.deviceName ?: "",
+                            deviceId = originalDevice.deviceName ?: "",
+                            macAddress = originalDevice.address,
+                            rssi = rssi,
+                            originalDevice = originalDevice
+                        )
+                    }
+                    else -> {
+                        Log.e(TAG, "Unknown device type: ${originalDevice?.javaClass?.simpleName}")
+                        null
+                    }
+                }
+
+                Log.d(TAG, "Created DeviceInfo: ${selectedDevice?.deviceName}, ${selectedDevice?.deviceId}")
+                updateDeviceDisplay(selectedDevice)
             }
+        } else {
+            Log.d(TAG, "Scan result received with result code: ${result.resultCode}")
         }
+    }
+
+    private fun updateDeviceDisplay(device: DeviceInfo?) {
+        if (device == null) {
+            tvDeviceName.text = "No Device"
+            tvDeviceId.text = "No ID"
+            return
+        }
+
+        // 更新设备信息显示
+        layoutDeviceInfo.visibility = View.VISIBLE
+        tvDeviceName.text = device.deviceName ?: ""
+        tvDeviceId.text = device.deviceId ?: ""
     }
 
     private val configLauncher = registerForActivityResult(
@@ -134,7 +204,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        configStorage = ConfigStorage(this)
+        configScan = ConfigStorage(this)
         initViews()
         setupHistoryViews()
         loadRecentConfigs()
@@ -143,7 +213,6 @@ class MainActivity : AppCompatActivity() {
 
     // region UI初始化
     private fun initViews() {
-        btnScan = findViewById(R.id.btn_scan)
         etServerAddress = findViewById(R.id.et_server_address)
         etServerPort = findViewById(R.id.et_server_port)
         etWifiSsid = findViewById(R.id.et_wifi_ssid)
@@ -151,18 +220,26 @@ class MainActivity : AppCompatActivity() {
         btnPair = findViewById(R.id.btn_pair)
         tvRecentServer = findViewById(R.id.tv_recent_server)
         tvRecentWifi = findViewById(R.id.tv_recent_wifi)
-
         layoutServerHistory = findViewById(R.id.layout_server_history)
         layoutWifiHistory = findViewById(R.id.layout_wifi_history)
+        tvDeviceName = findViewById(R.id.tv_device_name)
+        tvDeviceId = findViewById(R.id.tv_device_id)
+        layoutDeviceInfo = findViewById(R.id.layout_device_info)
+        btnSearch = findViewById(R.id.btn_search)
 
-        btnScan.setOnClickListener {
+        // 初始隐藏设备信息区域
+        //layoutDeviceInfo.visibility = View.GONE
+        updateDeviceDisplay(null)  // 显示空状态而不是隐藏
+        btnSearch.setOnClickListener {
             startScanActivity()
         }
 
+        // 配对按钮点击事件
         btnPair.setOnClickListener {
             handlePairClick()
         }
 
+        // 历史记录点击事件
         layoutServerHistory.setOnClickListener {
             showServerHistoryMenu(it)
         }
@@ -170,6 +247,15 @@ class MainActivity : AppCompatActivity() {
         layoutWifiHistory.setOnClickListener {
             showWifiHistoryMenu(it)
         }
+
+        // 设置历史记录标题的时钟图标
+        val clockDrawable = ContextCompat.getDrawable(this, R.drawable.ic_history_24)
+        clockDrawable?.setTint(ContextCompat.getColor(this, R.color.text_secondary))
+        tvRecentServer.setCompoundDrawablesWithIntrinsicBounds(clockDrawable, null, null, null)
+        tvRecentWifi.setCompoundDrawablesWithIntrinsicBounds(clockDrawable, null, null, null)
+
+        // 加载最近配置
+        loadRecentConfigs()
     }
 
     private fun setupHistoryViews() {
@@ -182,7 +268,7 @@ class MainActivity : AppCompatActivity() {
 
     // region 历史记录管理
     private fun showServerHistoryMenu(anchor: View) {
-        val recentServers = configStorage.getServerConfigs().take(5)
+        val recentServers = configScan.getServerConfigs().take(5)
         if (recentServers.isEmpty()) return
 
         PopupMenu(this, anchor).apply {
@@ -199,7 +285,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showWifiHistoryMenu(anchor: View) {
-        val recentWifis = configStorage.getWifiConfigs().take(5)
+        val recentWifis = configScan.getWifiConfigs().take(5)
         if (recentWifis.isEmpty()) return
 
         PopupMenu(this, anchor).apply {
@@ -216,7 +302,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadRecentConfigs() {
-        val recentServers = configStorage.getServerConfigs()
+        val recentServers = configScan.getServerConfigs()
         if (recentServers.isNotEmpty()) {
             tvRecentServer.text = getString(R.string.recent_servers_count, recentServers.size.coerceAtMost(5))
             layoutServerHistory.visibility = View.VISIBLE
@@ -224,7 +310,7 @@ class MainActivity : AppCompatActivity() {
             layoutServerHistory.visibility = View.GONE
         }
 
-        val recentWifis = configStorage.getWifiConfigs()
+        val recentWifis = configScan.getWifiConfigs()
         if (recentWifis.isNotEmpty()) {
             tvRecentWifi.text = getString(R.string.recent_networks_count, recentWifis.size.coerceAtMost(5))
             layoutWifiHistory.visibility = View.VISIBLE
@@ -369,8 +455,8 @@ class MainActivity : AppCompatActivity() {
         val serverConfig = getCurrentServerConfig()
         val wifiConfig = getCurrentWifiConfig()
 
-        serverConfig?.let { configStorage.saveServerConfig(it) }
-        wifiConfig?.let { configStorage.saveWifiConfig(it) }
+        serverConfig?.let { configScan.saveServerConfig(it) }
+        wifiConfig?.let { configScan.saveWifiConfig(it) }
     }
 
     private fun getCurrentServerConfig(): ServerConfig? {
@@ -449,7 +535,7 @@ class MainActivity : AppCompatActivity() {
 
             getCurrentServerConfig()?.let { serverConfig ->
                 getCurrentWifiConfig()?.let { wifiConfig ->
-                    configStorage.saveDeviceHistory(
+                    configScan.saveDeviceHistory(
                         DeviceHistory(
                             deviceName = deviceName,
                             macAddress = deviceMac,

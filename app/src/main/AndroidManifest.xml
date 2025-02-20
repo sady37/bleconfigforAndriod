@@ -45,6 +45,9 @@
         <activity
             android:name="com.wisefido.ScanActivity"
             android:exported="false"/>
+        <activity
+            android:name="com.bleconfig.sleepace.SearchBleDeviceActivity"
+            android:exported="false"/>
     </application>
 
 </manifest>

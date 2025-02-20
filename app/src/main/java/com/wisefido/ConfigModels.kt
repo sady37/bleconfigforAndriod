@@ -146,3 +146,11 @@ object DefaultConfig {
     const val DEFAULT_FILTER_TYPE = FilterType.DEVICE_NAME // 默认过滤器类型
     const val DEFAULT_FILTER_PREFIX = "" // 默认过滤器前缀
 }
+
+// RequestCodes
+object RequestCodes {
+    const val PERMISSION_REQUEST = 100
+    const val SCAN_SLEEPACE = 200
+    const val SCAN_RADAR = 201
+    // ... 其他请求码
+}

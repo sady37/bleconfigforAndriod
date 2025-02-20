@@ -22,6 +22,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 
+
 import com.espressif.espblufi.constants.BlufiConstants
 import com.espressif.espblufi.params.BlufiConfigureParams
 import com.espressif.espblufi.response.BlufiStatusResponse
@@ -46,7 +47,7 @@ class RadarBleManager private constructor(private val context: Context) {
 
     companion object {
         private const val TAG = "RadarBleManager"
-        private const val SCAN_TIMEOUT = 10000L  // 扫描超时时间 10秒
+        private const val SCAN_TIMEOUT = 5000L  // 扫描超时时间 10秒
 
         @Volatile
         private var instance: RadarBleManager? = null
@@ -98,7 +99,7 @@ class RadarBleManager private constructor(private val context: Context) {
             return
         }
         if (isScanning) return
-
+        Log.d(TAG, "RadarBleManager startScan with filterPrefix: '$filterPrefix', filterType: $filterType")
         this.filterPrefix = filterPrefix
         this.filterType = filterType
 
@@ -112,7 +113,7 @@ class RadarBleManager private constructor(private val context: Context) {
             try {
                 scanner.startScan(null, settings, leScanCallback)
                 mainHandler.postDelayed(scanTimeoutRunnable, SCAN_TIMEOUT)
-                Log.d(TAG, "Started scanning with filter: ${filterPrefix ?: "none"}, type: $filterType")
+                //Log.d(TAG, "Started scanning with filter: ${filterPrefix ?: "none"}, type: $filterType")
             } catch (e: Exception) {
                 Log.e(TAG, "Start scan failed: ${e.message}")
             }
@@ -143,11 +144,12 @@ class RadarBleManager private constructor(private val context: Context) {
             // 只有在设置了过滤条件时才进行过滤
             val prefix = filterPrefix
             if (!prefix.isNullOrEmpty()) {
+                Log.d(TAG, "Checking device: ${result.device.name ?: "null"} against prefix: $prefix")
                 when (filterType) {
                     FilterType.DEVICE_NAME -> {
-                        val deviceName = result.device.name ?: return
-                        if (!deviceName.contains(prefix, ignoreCase = true)) {
-                            Log.d(TAG, "Filtered out device by name: $deviceName")
+                        val deviceName = result.device.name
+                        if (deviceName == null || !deviceName.contains(prefix, ignoreCase = true)) {
+                            Log.d(TAG, "Device filtered out - name doesn't match")
                             return
                         }
                     }
@@ -156,7 +158,7 @@ class RadarBleManager private constructor(private val context: Context) {
                         if (!deviceMac.replace(":", "")
                                 .replace("-", "")
                                 .contains(prefix, ignoreCase = true)) {
-                            Log.d(TAG, "Filtered out device by MAC: $deviceMac")
+                            //Log.d(TAG, "Filtered out device by MAC: $deviceMac")
                             return
                         }
                     }
@@ -173,7 +175,7 @@ class RadarBleManager private constructor(private val context: Context) {
                     }
                 }
             }
-            Log.d(TAG, "Device passed filter: ${result.device.name}")
+            //Log.d(TAG, "Device passed filter: ${result.device.name}")
             mainHandler.post {
                 scanCallback?.invoke(result)
             }

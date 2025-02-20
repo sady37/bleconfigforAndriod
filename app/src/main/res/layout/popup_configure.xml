@@ -19,17 +19,21 @@
             android:layout_height="wrap_content"
             android:minWidth="120dp"
             android:text="Radar Name:"
+            android:textColor="@color/text_secondary"
             android:textSize="16sp" />
 
         <EditText
             android:id="@+id/et_radar_name"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_width="150dp"
             android:layout_height="48dp"
-            android:text="TSBLU"
+            android:background="@drawable/bg_input_border"
+            android:hint="TSBLU"
             android:singleLine="true"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp" />
+            android:textSize="14sp"
+            android:paddingStart="@dimen/spacing_small"
+            android:paddingEnd="@dimen/spacing_small"
+            android:importantForAutofill="no"
+            android:inputType="text" />
     </LinearLayout>
 
     <!-- 过滤类型选择 -->
