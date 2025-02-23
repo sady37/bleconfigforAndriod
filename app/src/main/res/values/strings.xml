@@ -17,7 +17,7 @@
     <string name="hint_select_device">Select device ID</string>
     <string name="step_2">STEP 2</string>
     <string name="hint_server_info">Server information to be connected by the device</string>
-    <string name="hint_server_address">IPv4 Address or owl.wisefido.com</string>
+    <string name="hint_server_address">example: 47.90.180.176 or owl.wisefido.com</string>
     <string name="hint_server_port">tcp29010</string>
     <string name="step_3">STEP 3</string>
     <string name="hint_select_wlan">Select WLAN to connect device</string>
@@ -38,11 +38,11 @@
     <string name="toast_unknown_device_type">Unknown device type</string>
     <string name="toast_enter_server_address">Please enter server address</string>
     <string name="toast_enter_server_port">Please enter server port</string>
-    <string name="toast_enter_wifi_name">Please enter Wi-Fi name</string>
+    <string name="toast_enter_wifi_name">Please enter Wi-Fi ssid</string>
     <string name="toast_enter_wifi_password">Please enter Wi-Fi password</string>
     <string name="toast_config_success">Configuration successful</string>
     <string name="toast_config_failed">Configuration failed</string>
-    <string name="toast_invalid_port_format">Invalid port format. Use "tcp80", "udp80", or "80"</string>
+    <string name="toast_invalid_port_format">Invalid port format. UseType "tcp29010", "udp8000", or "29010"</string>
     <string name="cannot_find_device_click_to_refresh">Cannot find device? Click to refresh</string>
     <string name="toast_get_wifi_failed">Failed to get WiFi information</string>
     <string name="toast_invalid_device">invalid_device</string>

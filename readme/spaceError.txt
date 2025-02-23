@@ -335,3 +335,60 @@
 2025-02-20 10:30:05.707 27071-27071 ScanActivity            com.wisefido                         D  Scan timeout in Activity
 2025-02-20 10:30:07.077 27071-27071 ScanActivity            com.wisefido                         D  Scan timeout in Activity
 
+
+
+============v2.2   change AndriodMainfest.xml
+2025-02-21 00:40:58.397 29278-29278 BufferQueueConsumer     com.wisefido                         D  [](id:725e00000000,api:0,p:-1,c:29278) connect: controlledByApp=false
+2025-02-21 00:40:58.399 29278-29278 FBI                     com.wisefido                         E  Can't load library: dlopen failed: library "libmagtsync.so" not found
+2025-02-21 00:40:58.400 29278-29298 libMEOW                 com.wisefido                         D  meow new tls: 0xb400007606c02080
+2025-02-21 00:40:58.401 29278-29298 libMEOW                 com.wisefido                         D  applied 1 plugins for [com.wisefido]:
+2025-02-21 00:40:58.401 29278-29298 libMEOW                 com.wisefido                         D    plugin 1: [libMEOW_gift.so]: 0xb4000075c6ba2030
+2025-02-21 00:40:58.401 29278-29298 libMEOW                 com.wisefido                         D  rebuild call chain: 0xb400007606c420c0
+2025-02-21 00:40:58.413 29278-29298 skia                    com.wisefido                         D  GrGLMakeAssembledInterface verStr OpenGL ES 3.2 v1.r32p1-01eac0.394145956bc7cd8e697b330aba11e3d3
+2025-02-21 00:40:58.413 29278-29298 skia                    com.wisefido                         D  GrGLMakeAssembledGLESInterface verStr OpenGL ES 3.2 v1.r32p1-01eac0.394145956bc7cd8e697b330aba11e3d3
+2025-02-21 00:40:58.413 29278-29298 skia                    com.wisefido                         D  extensions init verString=OpenGL ES 3.2 v1.r32p1-01eac0.394145956bc7cd8e697b330aba11e3d3
+2025-02-21 00:40:58.466 29278-29298 mali                    com.wisefido                         I  [DebugProp] GPU Debug-Mechanism Disable !
+2025-02-21 00:40:58.518 29278-29298 BLASTBufferQueue        com.wisefido                         D  [VRI[MainActivity]#0](f:0,a:1) acquireNextBufferLocked size=1200x2000 mFrameNumber=1 applyTransaction=true mTimestamp=929151209779381(auto) mPendingTransactions.size=0 graphicBufferId=125748052492291 transform=0
+2025-02-21 00:40:58.520 29278-29298 Parcel                  com.wisefido                         W  Expecting binder but got null!
+2025-02-21 00:40:58.531 29278-29278 Compatibil...geReporter com.wisefido                         D  Compat change id reported: 163400105; UID 10245; state: ENABLED
+2025-02-21 00:40:58.546 29278-29278 AssistStructure         com.wisefido                         I  Flattened final assist data: 5136 bytes, containing 1 windows, 34 views
+2025-02-21 00:40:59.198 29278-29283 com.wisefido            com.wisefido                         I  Compiler allocated 5078KB to compile void android.view.ViewRootImpl.performTraversals()
+2025-02-21 00:41:03.607 29278-29393 ProfileInstaller        com.wisefido                         D  Installing profile for com.wisefido
+2025-02-21 00:42:29.529 29278-29278 Choreographer           com.wisefido                         W  Frame time is 0.079391  now = 929242221245463  timestampNanos = 929242221324854 ms in the future!  Check that graphics HAL is generating vsync timestamps using the correct timebase.
+2025-02-21 00:42:33.098 29278-29278 Compatibil...geReporter com.wisefido                         D  Compat change id reported: 78294732; UID 10245; state: ENABLED
+2025-02-21 00:42:33.147 29278-29434 libMEOW                 com.wisefido                         D  meow new tls: 0xb400007606cc2140
+2025-02-21 00:42:33.147 29278-29434 libMEOW                 com.wisefido                         D  applied 1 plugins for [com.wisefido]:
+2025-02-21 00:42:33.147 29278-29434 libMEOW                 com.wisefido                         D    plugin 1: [libMEOW_gift.so]: 0xb4000075c6ba2030
+2025-02-21 00:42:33.147 29278-29434 libMEOW                 com.wisefido                         D  rebuild call chain: 0xb400007606d221a0
+2025-02-21 00:42:33.147 29278-29434 libMEOW                 com.wisefido                         D  meow delete tls: 0xb400007606cc2140
+2025-02-21 00:42:33.211 29278-29278 ScanActivity            com.wisefido                         D  Initializing views
+2025-02-21 00:42:33.218 29278-29278 ScanActivity            com.wisefido                         D  Radio button changed, current module: null
+2025-02-21 00:42:33.223 29278-29278 VRI[ScanActivity]       com.wisefido                         D  hardware acceleration = true, forceHwAccelerated = false
+2025-02-21 00:42:33.228 29278-29278 InputTransport          com.wisefido                         D  Create ARC handle: 0xb400007426bebc50
+2025-02-21 00:42:33.249 29278-29278 BufferQueueConsumer     com.wisefido                         D  [](id:725e00000001,api:0,p:-1,c:29278) connect: controlledByApp=false
+2025-02-21 00:42:33.266 29278-29298 BLASTBufferQueue        com.wisefido                         D  [VRI[ScanActivity]#1](f:0,a:1) acquireNextBufferLocked size=1200x2000 mFrameNumber=1 applyTransaction=true mTimestamp=929245957910155(auto) mPendingTransactions.size=0 graphicBufferId=125748052492294 transform=0
+2025-02-21 00:42:33.266 29278-29298 Parcel                  com.wisefido                         W  Expecting binder but got null!
+2025-02-21 00:42:33.821 29278-29278 BLASTBufferQueue        com.wisefido                         D  [VRI[MainActivity]#0](f:0,a:1) destructor()
+2025-02-21 00:42:33.821 29278-29278 BufferQueueConsumer     com.wisefido                         D  [VRI[MainActivity]#0(BLAST Consumer)0](id:725e00000000,api:0,p:-1,c:29278) disconnect
+2025-02-21 00:42:36.267 29278-29278 ScanActivity            com.wisefido                         D  Start scan clicked, current module: radarQL
+2025-02-21 00:42:36.268 29278-29278 ScanActivity            com.wisefido                         D  Filter prefix set to: TSBLU
+2025-02-21 00:42:36.278 29278-29278 ScanActivity            com.wisefido                         D  Starting radar scan with filter: TSBLU, type: De
+
+
+
+核心问题应该在于 BleDeviceNameUtil.getBleDeviceName() 对广播包的解析。让我们仔细检查：
+
+参数传入：
+
+
+type: 0xff - 这个值是正确的
+record: scanRecord - 蓝牙原始广播数据
+可能的问题点：
+字节数组到字符串的编码转换
+广播包的数据格式解析
+数据长度的判断
+
+需要我们：
+打印出原始的 scanRecord 字节数组看看内容
+对照蓝牙广播包的规范检查解析过程
+您觉得我们应该从哪个方向入手排查？

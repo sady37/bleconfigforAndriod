@@ -1,13 +1,10 @@
 package com.wisefido
 
 import android.Manifest
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -30,20 +27,29 @@ import java.util.Locale
 import android.annotation.SuppressLint
 import android.os.Handler
 import android.os.Looper
+import android.app.Dialog
+
+import com.common.DeviceInfo
+import com.common.Productor
+import com.common.FilterType
+import com.common.DeviceHistory
+import com.common.ServerConfig
+import com.common.WifiConfig
+import com.common.DefaultConfig
 
 import com.espressif.espblufi.RadarBleManager
-import com.bleconfig.sleepace.SleePaceBleManager
+import com.bleconfig.sleepace.SleepaceBleManager
 import com.sleepace.sdk.domain.BleDevice
+import com.sleepace.sdk.constant.StatusCode
 
-import android.app.Dialog
-import android.widget.Filter
+
 
 class ConfigDialog(context: Context) : Dialog(context) {
     private lateinit var etRadarName: EditText
     private lateinit var radioFilterType: RadioGroup
 
     // 配置更改监听器
-    private var onConfigChangedListener: ((String, String) -> Unit)? = null
+    private var onConfigChangedListener: ((String, FilterType) -> Unit)? = null
 
     init {
         // 设置对话框布局
@@ -90,7 +96,7 @@ class ConfigDialog(context: Context) : Dialog(context) {
     /**
      * 设置过滤器类型
      */
-    fun setFilterType(filterType: String) {
+    fun setFilterType(filterType: FilterType) {
         when (filterType) {
             FilterType.DEVICE_NAME -> radioFilterType.check(R.id.radio_device_name)
             FilterType.MAC -> radioFilterType.check(R.id.radio_mac)
@@ -101,7 +107,7 @@ class ConfigDialog(context: Context) : Dialog(context) {
     /**
      * 设置配置更改监听器
      */
-    fun setOnConfigChangedListener(listener: (String, String) -> Unit) {
+    fun setOnConfigChangedListener(listener: (String, FilterType) -> Unit) {
         this.onConfigChangedListener = listener
     }
 }
@@ -115,7 +121,7 @@ class ScanActivity : AppCompatActivity() {
         const val EXTRA_DEVICE = "extra_device"
         const val EXTRA_DEVICE_TYPE = "device_type"
         const val EXTRA_DEVICE_INFO = "extra_device_info"  // 添加这一行
-        private const val SCAN_TIMEOUT = 5500L  // 与 RadarBleManager+500 的超时时间
+        private const val SCAN_TIMEOUT = 10500L  // 与 RadarBleManager+500 的超时时间
     }
 
     // 视图组件
@@ -137,7 +143,7 @@ class ScanActivity : AppCompatActivity() {
     private val deviceList = mutableListOf<DeviceInfo>()
 
     // 当前扫描的厂家模块
-    private var currentScanModule: String? = null
+    private var currentScanModule: Productor = Productor.radarQL
 
     // 扫描状态
     private var isScanning = false
@@ -151,7 +157,7 @@ class ScanActivity : AppCompatActivity() {
 
 
     // 配置参数
-    private var currentFilterType = DefaultConfig.DEFAULT_FILTER_TYPE
+    private var currentFilterType: FilterType = DefaultConfig.DEFAULT_FILTER_TYPE
     private var currentFilterPrefix = DefaultConfig.DEFAULT_FILTER_PREFIX
 
     // 启用蓝牙的新 API
@@ -245,17 +251,15 @@ class ScanActivity : AppCompatActivity() {
             if (isScanning) {
                 stopScan()
             } else {
-                Log.d(TAG, "Start scan clicked, current module: $currentScanModule")  // 增加日志
-                // 在扫描前设置过滤值
-                currentFilterPrefix = when (currentScanModule) {
-                    Productor.radarQL -> configScan.getRadarDeviceName()    // Radar模式从配置获取
-                    Productor.sleepBoardHS -> ""                            // Sleepace不过滤
-                    Productor.espBle -> inputFilter.text.toString()         // Filter模式从输入框获取
-                    else -> ""
-                }
-                Log.d(TAG, "Filter prefix set to: $currentFilterPrefix")  // 增加日志
+                Log.d(TAG, "Start scan clicked, current module: $currentScanModule")
 
-                // Filter模式使用配置的过滤类型，其他模式固定用设备名过滤
+                currentFilterPrefix = when (currentScanModule) {
+                    Productor.radarQL -> configScan.getRadarDeviceName()
+                    Productor.sleepBoardHS -> ""
+                    Productor.espBle -> inputFilter.text.toString()
+                }
+                Log.d(TAG, "Filter prefix set to: $currentFilterPrefix")
+
                 currentFilterType = if (currentScanModule == Productor.espBle) {
                     configScan.getFilterType()
                 } else {
@@ -277,20 +281,7 @@ class ScanActivity : AppCompatActivity() {
             Log.i(TAG, "Device selected: ${device.deviceId}, MAC: ${device.macAddress}")
 
             val intent = Intent().apply {
-                // 只传递必要信息
-                putExtra("productor_name", device.productorName)  // 厂商标识
-                putExtra("rssi", device.rssi)                    // 信号强度
-
-                // 原始设备对象仍然需要传递，因为配网时需要
-                when (device.productorName) {
-                    Productor.radarQL, Productor.espBle -> {
-                        putExtra(EXTRA_DEVICE, device.originalDevice as ScanResult)
-                    }
-
-                    Productor.sleepBoardHS -> {
-                        putExtra(EXTRA_DEVICE, device.originalDevice as BleDevice)
-                    }
-                }
+                putExtra(EXTRA_DEVICE_INFO, device)  // 直接传递 DeviceInfo 对象
             }
 
             setResult(RESULT_OK, intent)
@@ -354,17 +345,17 @@ class ScanActivity : AppCompatActivity() {
         }
 
         if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
-            // 超时更新
-            updateScanButtonState(true)
+            // 开始新的扫描时才清空列表
             deviceList.clear()
             rvDevices.adapter?.notifyDataSetChanged()
+
+            // 更新状态为扫描中
+            updateScanButtonState(true)
 
             // 设置超时
             mainHandler.postDelayed(scanTimeoutRunnable, SCAN_TIMEOUT)
 
-            updateScanButtonState(false)
-
-            // ===  简化扫描方法选择 ===
+            // 开始扫描
             when (currentScanModule) {
                 Productor.sleepBoardHS -> startSleepaceScan()
                 else -> startRadarScan()  // radar和filter都用这个
@@ -383,20 +374,12 @@ class ScanActivity : AppCompatActivity() {
         // === [修改] 添加日志 ===
         Log.d(TAG, "Starting radar scan with filter: $currentFilterPrefix, type: $currentFilterType")
 
-        radarManager.setScanCallback { result ->
+        radarManager.setScanCallback { deviceInfo ->
             //Log.d(TAG, "Received scan result: ${result.device.name ?: "null"}, ${result.device.address}")
-            val device = DeviceInfo(
-                productorName = Productor.radarQL,
-                deviceName = result.device.name ?: "",
-                deviceId = result.device.name ?: "",
-                macAddress = result.device.address,
-                rssi = result.rssi,
-                originalDevice = result
-            )
 
             runOnUiThread {
-                if (!deviceList.any { it.macAddress == device.macAddress }) {
-                    deviceList.add(device)
+                if (!deviceList.any { it.macAddress == deviceInfo.macAddress }) {
+                    deviceList.add(deviceInfo)
                     rvDevices.adapter?.notifyItemInserted(deviceList.size - 1)
                 }
             }
@@ -410,24 +393,33 @@ class ScanActivity : AppCompatActivity() {
      */
     @SuppressLint("MissingPermission")
     private fun startSleepaceScan() {
-        val sleepaceManager = SleePaceBleManager.getInstance(this)
+        val sleepaceManager = SleepaceBleManager.getInstance(this)
         sleepaceManager.startScan { result ->
             runOnUiThread {
-                if (result.status == StatusCode.SUCCESS) {
-                    val bleDevice = result.data as BleDevice
-                    val device = DeviceInfo(
-                        productorName = Productor.sleepBoardHS,     // 厂家标识
-                        deviceName = bleDevice.deviceName ?: "",    // 实际扫描到的设备名称
-                        deviceId = bleDevice.deviceName ?: "",      // 显示用的设备标识
-                        macAddress = bleDevice.address,
-                        rssi = 0,
-                        originalDevice = bleDevice
-                    )
+                // 检查 result 是否为 null
+                if (result == null) {
+                    Log.e(TAG, "Scan result is null")
+                    return@runOnUiThread
+                }
 
-                    if (!deviceList.any { it.macAddress == device.macAddress }) {
-                        deviceList.add(device)
-                        rvDevices.adapter?.notifyItemInserted(deviceList.size - 1)
-                    }
+                // 检查操作状态
+                if (result.status != StatusCode.SUCCESS) {
+                    Log.e(TAG, "Scan failed with status: ${result.status}")
+                    return@runOnUiThread
+                }
+
+                // 检查设备信息是否为 null
+                // 检查设备信息是否为 DeviceInfo
+                val deviceInfo = result.result as? DeviceInfo
+                if (deviceInfo == null) {
+                    Log.e(TAG, "Scan result data is not DeviceInfo")
+                    return@runOnUiThread
+                }
+
+                // 添加到设备列表
+                if (!deviceList.any { it.macAddress == deviceInfo.macAddress }) {
+                    deviceList.add(deviceInfo)
+                    rvDevices.adapter?.notifyItemInserted(deviceList.size - 1)
                 }
             }
         }
@@ -445,19 +437,9 @@ class ScanActivity : AppCompatActivity() {
         updateScanButtonState(false)
 
         when (currentScanModule) {
-            Productor.radarQL, Productor.espBle -> {
-                RadarBleManager.getInstance(this).stopScan()
-            }
-            Productor.sleepBoardHS -> {
-                SleePaceBleManager.getInstance(this).stopScan()
-            }
+            Productor.radarQL, Productor.espBle -> RadarBleManager.getInstance(this).stopScan()
+            Productor.sleepBoardHS -> SleepaceBleManager.getInstance(this).stopScan()
         }
-
-
-        // 清空设备列表
-        val oldSize = deviceList.size
-        deviceList.clear()
-        rvDevices.adapter?.notifyItemRangeRemoved(0, oldSize)
     }
 
     /**
@@ -478,7 +460,7 @@ class ScanActivity : AppCompatActivity() {
                 when (newType) {
                     FilterType.DEVICE_NAME -> {
                         filterLabel.text = "Filter by: Device Name"
-                        inputFilter.hint = "TSBLU, BM..."  // 简化的设备名格式示例
+                        inputFilter.hint = "TSBLU,..."  // 简化的设备名格式示例
                     }
                     FilterType.MAC -> {
                         filterLabel.text = "Filter by: MAC"

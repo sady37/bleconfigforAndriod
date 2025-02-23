@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.sleepboard.ble"
+    namespace = "com.bleconfig.sleepace"
     compileSdk = 34
 
     defaultConfig {
-        minSdk = 28
+        minSdk = 31  //28
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
 
@@ -39,11 +39,11 @@ android {
 }
 
 dependencies {
+    implementation(project(":libs"))
+
     // B 厂 SDK 依赖
-    //implementation(files("libs/sdkcore.jar"))
-    //implementation(files("libs/wificonfigsdk.jar"))
-    api(files("libs/sdkcore.jar"))
-    api(files("libs/wificonfigsdk.jar"))
+    api(files("../libs/sdkcore.jar"))
+    api(files("../libs/wificonfigsdk.jar"))
     //api(files("libs/android-support-v4.jar"))
 
     // AndroidX 支持库 (替代原来的 android-support-v4.jar)

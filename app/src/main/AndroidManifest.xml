@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-   <manifest  xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.wisefido" >
+   <manifest  xmlns:android="http://schemas.android.com/apk/res/android">
 
 
     <!-- 基础蓝牙权限 -->
@@ -44,9 +43,6 @@
 
         <activity
             android:name="com.wisefido.ScanActivity"
-            android:exported="false"/>
-        <activity
-            android:name="com.bleconfig.sleepace.SearchBleDeviceActivity"
             android:exported="false"/>
     </application>
 

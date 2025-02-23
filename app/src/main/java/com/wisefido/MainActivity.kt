@@ -21,7 +21,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -34,20 +33,31 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.widget.TextView
 import android.widget.ImageButton  // [新增] 解决ImageButton未定义的问题
+import android.app.Dialog  // 添加Dialog导入
+import android.widget.ProgressBar  // 添加ProgressBar导入
+import android.text.InputFilter
+import android.text.InputType
 
-
+//common data type
+import com.common.DeviceInfo
+import com.common.Productor
+import com.common.FilterType
+import com.common.DeviceHistory
+import com.common.ServerConfig
+import com.common.WifiConfig
+import com.common.DefaultConfig
 
 // A厂 SDK
 import com.espressif.espblufi.params.BlufiConfigureParams
 import com.espressif.espblufi.params.BlufiParameter
 import com.espressif.espblufi.RadarBleManager
+import android.bluetooth.le.ScanResult  // A 厂扫描结果
 
 // B厂 SDK
-import com.bleconfig.sleepace.SleePaceBleManager  // B厂管理类
 import com.sleepace.sdk.constant.StatusCode
 import com.sleepace.sdk.domain.BleDevice
+import com.bleconfig.sleepace.SleepaceBleManager
 
-import android.bluetooth.le.ScanResult  // A 厂扫描结果
 
 //自已的引用
 
@@ -93,6 +103,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutWifiHistory: View
     private lateinit var tvDeviceName: TextView
     private lateinit var tvDeviceId: TextView
+    private lateinit var tvDeviceRssi: TextView
     private lateinit var btnSearch: ImageButton
     private lateinit var layoutDeviceInfo: View
     private lateinit var configScan: ConfigStorage
@@ -112,64 +123,16 @@ class MainActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK) {
             Log.d(TAG, "Scan result received with RESULT_OK")
             result.data?.let { intent ->
-                // 打印所有传递的数据键
-                Log.d(TAG, "Intent extras: ${intent.extras?.keySet()?.joinToString()}")
-
-                // 获取基础数据
-                val productorName = intent.getStringExtra("productor_name")
-                val rssi = intent.getIntExtra("rssi", 0)
-                Log.d(TAG, "Received productor: $productorName, rssi: $rssi")
-
-                // 获取原始设备对象
-                val originalDevice = if (productorName == Productor.sleepBoardHS) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE, BleDevice::class.java)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE) as? BleDevice
-                    }
+                val deviceInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE_INFO, DeviceInfo::class.java)
                 } else {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        intent.getParcelableExtra(ScanActivity.EXTRA_DEVICE, ScanResult::class.java)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        intent.getParcelableExtra(ScanActivity.EXTRA_DEVICE)
-                    }
+                    @Suppress("DEPRECATION")
+                    intent.getSerializableExtra(ScanActivity.EXTRA_DEVICE_INFO) as? DeviceInfo
                 }
 
-                Log.d(TAG, "Original device: $originalDevice")
-
-                selectedDevice = when (originalDevice) {
-                    is ScanResult -> {
-                        Log.d(TAG, "Processing ScanResult - Name: ${originalDevice.device.name}, Address: ${originalDevice.device.address}")
-                        DeviceInfo(
-                            productorName = productorName ?: "",
-                            deviceName = originalDevice.device.name ?: "",
-                            deviceId = originalDevice.device.name ?: "",
-                            macAddress = originalDevice.device.address,
-                            rssi = rssi,
-                            originalDevice = originalDevice
-                        )
-                    }
-                    is BleDevice -> {
-                        Log.d(TAG, "Processing BleDevice - Name: ${originalDevice.deviceName}, Address: ${originalDevice.address}")
-                        DeviceInfo(
-                            productorName = productorName ?: "",
-                            deviceName = originalDevice.deviceName ?: "",
-                            deviceId = originalDevice.deviceName ?: "",
-                            macAddress = originalDevice.address,
-                            rssi = rssi,
-                            originalDevice = originalDevice
-                        )
-                    }
-                    else -> {
-                        Log.e(TAG, "Unknown device type: ${originalDevice?.javaClass?.simpleName}")
-                        null
-                    }
-                }
-
-                Log.d(TAG, "Created DeviceInfo: ${selectedDevice?.deviceName}, ${selectedDevice?.deviceId}")
-                updateDeviceDisplay(selectedDevice)
+                Log.d(TAG, "Received DeviceInfo: ${deviceInfo?.deviceName}")
+                selectedDevice = deviceInfo
+                updateDeviceDisplay(deviceInfo)
             }
         } else {
             Log.d(TAG, "Scan result received with result code: ${result.resultCode}")
@@ -180,6 +143,7 @@ class MainActivity : AppCompatActivity() {
         if (device == null) {
             tvDeviceName.text = "No Device"
             tvDeviceId.text = "No ID"
+            tvDeviceRssi.text = "--"
             return
         }
 
@@ -187,6 +151,7 @@ class MainActivity : AppCompatActivity() {
         layoutDeviceInfo.visibility = View.VISIBLE
         tvDeviceName.text = device.deviceName ?: ""
         tvDeviceId.text = device.deviceId ?: ""
+        tvDeviceRssi.text = "${device.rssi}dBm"
     }
 
     private val configLauncher = registerForActivityResult(
@@ -224,8 +189,20 @@ class MainActivity : AppCompatActivity() {
         layoutWifiHistory = findViewById(R.id.layout_wifi_history)
         tvDeviceName = findViewById(R.id.tv_device_name)
         tvDeviceId = findViewById(R.id.tv_device_id)
+        tvDeviceRssi = findViewById(R.id.tv_device_rssi)  // 添加 RSSI TextView
         layoutDeviceInfo = findViewById(R.id.layout_device_info)
         btnSearch = findViewById(R.id.btn_search)
+
+        // 添加输入过滤器，去除空格
+        val noSpaceFilter = InputFilter { source, start, end, dest, dstart, dend ->
+            source.toString().trim { it <= ' ' }
+        }
+
+        // 应用到所有输入框
+        etServerAddress.filters = arrayOf(noSpaceFilter)
+        etServerPort.filters = arrayOf(noSpaceFilter)
+        etWifiSsid.filters = arrayOf(noSpaceFilter)
+        etWifiPassword.filters = arrayOf(noSpaceFilter)
 
         // 初始隐藏设备信息区域
         //layoutDeviceInfo.visibility = View.GONE
@@ -343,7 +320,7 @@ class MainActivity : AppCompatActivity() {
                     // 所有权限都获取成功，启动扫描
                     startScanActivity()
                 } else {
-                    showToast(getString(R.string.permissions_required))
+                    showMessage(getString(R.string.permissions_required))
                 }
             }
         }
@@ -358,7 +335,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (selectedDevice == null) {
-            showToast(getString(R.string.toast_select_device_first))
+            showMessage(getString(R.string.toast_select_device_first))
             return
         }
 
@@ -366,7 +343,7 @@ class MainActivity : AppCompatActivity() {
             Productor.radarQL -> startRadarConfig()
             Productor.sleepBoardHS -> startSleepConfig()
             Productor.espBle -> startRadarConfig()
-            else -> showToast(getString(R.string.toast_unknown_device_type))
+            else -> showMessage(getString(R.string.toast_unknown_device_type))
         }
     }
 
@@ -375,23 +352,31 @@ class MainActivity : AppCompatActivity() {
      */
     @SuppressLint("MissingPermission")
     private fun startRadarConfig() {
+        // 检查设备信息
+        val deviceInfo = selectedDevice ?: run {
+            showMessage(getString(R.string.toast_select_device_first))
+            return
+        }
+
+        // 获取原始设备对象
+        val scanResult = deviceInfo.originalDevice as? ScanResult ?: run {
+            showMessage(getString(R.string.toast_invalid_device))
+            return
+        }
+
         val radarManager = RadarBleManager.getInstance(this)
         val serverConfig = getCurrentServerConfig() ?: return
         val wifiConfig = getCurrentWifiConfig() ?: return
 
-        // 1. 创建配置参数
+        // 创建配置参数
         val params = BlufiConfigureParams().apply {
             opMode = BlufiParameter.OP_MODE_STA  // Station模式
             setStaSSIDBytes(wifiConfig.ssid.toByteArray())  // 使用setStaSSIDBytes并转换为字节数组
             setStaPassword(wifiConfig.password)
         }
 
-        // 2. 连接设备
-        val device = BluetoothAdapter.getDefaultAdapter()
-            ?.getRemoteDevice(selectedDevice?.macAddress) ?: return
-
-        // 3. 开始配网
-        radarManager.connect(device)
+        // 开始配网
+        radarManager.connect(scanResult.device)
         radarManager.configure(params) { success ->
             runOnUiThread {
                 handleConfigResult(success)
@@ -401,33 +386,88 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun startSleepConfig() {
-        val bleDevice = lastScannedBleDevice
-        if (bleDevice == null) {
-            showToast(getString(R.string.toast_invalid_device))
+        // 检查设备信息
+        val deviceInfo = selectedDevice ?: run {
+            showMessage(getString(R.string.toast_select_device_first))
             return
         }
 
-        // 开始配网
-        val sleepaceManager = SleePaceBleManager.getInstance(this)
+        // 从原始设备中获取 BleDevice
+        val bleDevice = deviceInfo.originalDevice as? BleDevice ?: run {
+            showMessage(getString(R.string.toast_invalid_device))
+            return
+        }
+
+        // 检查是否是UDP端口
+        val portStr = etServerPort.text.toString().lowercase()
+        if (portStr.startsWith("udp")) {
+            showMessage("Invalid port, need tcp port")
+            return
+        }
+
+        val sleepaceManager = SleepaceBleManager.getInstance(this)
+
+        // 显示配置进度
+        showMessage("Configuring...", showProgress = true)
+
         try {
             sleepaceManager.startConfig(
                 bleDevice,
                 etServerAddress.text.toString(),
-                etServerPort.text.toString().toInt(),
+                etServerPort.text.toString().replace("tcp", "").replace("TCP", "").toInt(),
                 getWifiSsidRawData(),
                 etWifiPassword.text.toString()
             ) { callbackData ->
                 runOnUiThread {
-                    val success = callbackData.status == StatusCode.SUCCESS
-                    if (!success) {
-                        Log.e(TAG, "Config failed with status: ${callbackData.status}")
+                    when (callbackData.status) {
+                        StatusCode.SUCCESS -> {
+                            hideMessage()
+                            handleConfigResult(true)
+                            if (callbackData.result is DeviceInfo) {
+                                val deviceInfo = callbackData.result as DeviceInfo
+                                Log.d(TAG, "WiFi configuration successful - Device ID: ${deviceInfo.deviceId}")
+                            }
+                            showMessage("""
+                                WiFi configuration successful.
+                                Radar Light:Green
+                                SleepBoard WiFi Light:
+                                Solid Red->wifi connect fail
+                                Flashing red-> Wifi connect success,Server Connect Fail
+                                Solid Green-> wifi connect Success,Server connect Success
+                            """.trimIndent())
+                        }
+                        StatusCode.TIMEOUT -> {
+                            hideMessage()
+                            handleConfigResult(false)
+                            showMessage("WiFi configuration timeout")
+                        }
+                        StatusCode.DISCONNECT -> {
+                            showMessage("Device disconnected, retrying...", showProgress = true)
+                            handleConfigResult(false)
+                        }
+                        StatusCode.PARAMETER_ERROR -> {
+                            hideMessage()
+                            handleConfigResult(false)
+                            showMessage("Invalid WiFi configuration parameters")
+                        }
+                        else -> {
+                            hideMessage()
+                            handleConfigResult(false)
+                            showMessage("""
+                                WiFi configuration fail.
+                                WiFi light:Red, Blue:connect other mobile 
+                                Solid Red->wifi connect fail
+                                Flashing red-> Wifi connect success,Server Connect Fail
+                                Solid Green-> wifi connect Success,Server connect Success
+                            """.trimIndent())
+                        }
                     }
-                    handleConfigResult(success)
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Exception during Sleepace config", e)
-            showToast(getString(R.string.toast_config_exception))
+            Log.e(TAG, "Config error", e)
+            hideMessage()
+            showMessage(getString(R.string.toast_config_exception))
         }
     }
     // endregion
@@ -486,29 +526,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun validateInput(): Boolean {
         if (etServerAddress.text.isNullOrEmpty()) {
-            showToast(getString(R.string.toast_enter_server_address))
+            showMessage(getString(R.string.toast_enter_server_address))
             return false
         }
 
         val portInput = etServerPort.text.toString()
         if (portInput.isEmpty()) {
-            showToast(getString(R.string.toast_enter_server_port))
+            showMessage(getString(R.string.toast_enter_server_port))
             return false
         }
 
         val protocolAndPort = parseProtocolAndPort(portInput)
         if (protocolAndPort == null) {
-            showToast(getString(R.string.toast_invalid_port_format))
+            showMessage(getString(R.string.toast_invalid_port_format))
             return false
         }
 
         if (etWifiSsid.text.isNullOrEmpty()) {
-            showToast(getString(R.string.toast_enter_wifi_name))
+            showMessage(getString(R.string.toast_enter_wifi_name))
             return false
         }
 
         if (etWifiPassword.text.isNullOrEmpty()) {
-            showToast(getString(R.string.toast_enter_wifi_password))
+            showMessage(getString(R.string.toast_enter_wifi_password))
             return false
         }
 
@@ -547,14 +587,33 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             loadRecentConfigs()
-            showToast(getString(R.string.toast_config_success))
+            showMessage(getString(R.string.toast_config_success))
         } else {
-            showToast(getString(R.string.toast_config_failed))
+//            showMessage(getString(R.string.toast_config_failed))
         }
     }
 
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    private var mDialog: Dialog? = null
+
+    private fun showMessage(message: String, showProgress: Boolean = false) {
+        if(mDialog == null) {
+            mDialog = Dialog(this).apply {
+                setContentView(R.layout.dialog_message)
+                window?.setBackgroundDrawableResource(android.R.color.transparent)
+            }
+        }
+
+        mDialog?.findViewById<TextView>(R.id.message)?.text = message
+        mDialog?.findViewById<ProgressBar>(R.id.progress)?.visibility =
+            if(showProgress) View.VISIBLE else View.GONE
+
+        if(!mDialog?.isShowing!!) {
+            mDialog?.show()
+        }
+    }
+
+    private fun hideMessage() {
+        mDialog?.dismiss()
     }
     // endregion
 

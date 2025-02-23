@@ -4,6 +4,15 @@ import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
+import com.common.DeviceInfo
+import com.common.Productor
+import com.common.FilterType
+import com.common.DeviceHistory
+import com.common.ServerConfig
+import com.common.WifiConfig
+import com.common.DefaultConfig
+
+
 class ConfigStorage(context: Context) {
     private val prefs = context.getSharedPreferences("ble_config", Context.MODE_PRIVATE)
     private val gson = Gson()
@@ -109,24 +118,22 @@ class ConfigStorage(context: Context) {
             ?: DefaultConfig.RADAR_DEVICE_NAME
     }
 
-    // 保存过滤器类型
-    fun saveFilterType(filterType: String) {
-        prefs.edit().apply {
-            putString(KEY_FILTER_TYPE, filterType)
-            apply()
+
+    // 获取过滤器类型
+    fun getFilterType(): FilterType {
+        val filterTypeName = prefs.getString(KEY_FILTER_TYPE, DefaultConfig.DEFAULT_FILTER_TYPE.name)
+            ?: DefaultConfig.DEFAULT_FILTER_TYPE.name
+        return try {
+            FilterType.valueOf(filterTypeName)
+        } catch (e: IllegalArgumentException) {
+            DefaultConfig.DEFAULT_FILTER_TYPE
         }
     }
 
-    // 获取过滤器类型
-    fun getFilterType(): String {
-        return prefs.getString(KEY_FILTER_TYPE, DefaultConfig.DEFAULT_FILTER_TYPE)
-            ?: DefaultConfig.DEFAULT_FILTER_TYPE
-    }
-
     // 保存过滤器前缀
-    fun saveFilterPrefix(filterPrefix: String) {
+    fun saveFilterType(filterType: FilterType) {
         prefs.edit().apply {
-            putString(KEY_FILTER_PREFIX, filterPrefix)
+            putString(KEY_FILTER_TYPE, filterType.name)
             apply()
         }
     }

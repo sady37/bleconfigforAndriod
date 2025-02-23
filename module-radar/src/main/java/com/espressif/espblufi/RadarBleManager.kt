@@ -22,20 +22,20 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 
+//common data type
+import com.common.DeviceInfo
+import com.common.Productor
+import com.common.FilterType
+import com.common.DeviceHistory
+import com.common.ServerConfig
+import com.common.WifiConfig
+import com.common.DefaultConfig
 
 import com.espressif.espblufi.constants.BlufiConstants
 import com.espressif.espblufi.params.BlufiConfigureParams
 import com.espressif.espblufi.response.BlufiStatusResponse
 import com.espressif.espblufi.response.BlufiVersionResponse
 
-/**
- * BLE扫描过滤类型
- */
-object FilterType {
-    const val DEVICE_NAME = "DeviceName"
-    const val MAC = "MAC"
-    const val UUID = "UUID"
-}
 
 /**
  * A厂雷达设备蓝牙管理类
@@ -47,7 +47,7 @@ class RadarBleManager private constructor(private val context: Context) {
 
     companion object {
         private const val TAG = "RadarBleManager"
-        private const val SCAN_TIMEOUT = 5000L  // 扫描超时时间 10秒
+        private const val SCAN_TIMEOUT = 10000L  // 扫描超时时间 10秒
 
         @Volatile
         private var instance: RadarBleManager? = null
@@ -72,16 +72,16 @@ class RadarBleManager private constructor(private val context: Context) {
 
     private var isScanning = false
     private var filterPrefix: String? = null
-    private var filterType: String = FilterType.DEVICE_NAME
+    private var filterType: FilterType = FilterType.DEVICE_NAME
     private var configureCallback: ((Boolean) -> Unit)? = null
 
     // 扫描回调
-    private var scanCallback: ((ScanResult) -> Unit)? = null
+    private var scanCallback: ((DeviceInfo) -> Unit)? = null
 
     /**
      * 设置扫描回调
      */
-    fun setScanCallback(callback: (ScanResult) -> Unit) {
+    fun setScanCallback(callback: (DeviceInfo) -> Unit) {
         scanCallback = callback
     }
 
@@ -90,14 +90,7 @@ class RadarBleManager private constructor(private val context: Context) {
      * @param filterPrefix 过滤值，null 或空值时不过滤
      * @param filterType 过滤类型，默认为设备名称过滤
      */
-    fun startScan(filterPrefix: String?, filterType: String = FilterType.DEVICE_NAME){
-        // 验证 filterType 参数
-        if (filterType != FilterType.DEVICE_NAME &&
-            filterType != FilterType.MAC &&
-            filterType != FilterType.UUID) {
-            Log.e(TAG, "Invalid filter type: $filterType")
-            return
-        }
+    fun startScan(filterPrefix: String?, filterType: FilterType = FilterType.DEVICE_NAME) {
         if (isScanning) return
         Log.d(TAG, "RadarBleManager startScan with filterPrefix: '$filterPrefix', filterType: $filterType")
         this.filterPrefix = filterPrefix
@@ -144,12 +137,11 @@ class RadarBleManager private constructor(private val context: Context) {
             // 只有在设置了过滤条件时才进行过滤
             val prefix = filterPrefix
             if (!prefix.isNullOrEmpty()) {
-                Log.d(TAG, "Checking device: ${result.device.name ?: "null"} against prefix: $prefix")
+                //Log.d(TAG, "Checking device: ${result.device.name ?: "null"} against prefix: $prefix")
                 when (filterType) {
                     FilterType.DEVICE_NAME -> {
                         val deviceName = result.device.name
                         if (deviceName == null || !deviceName.contains(prefix, ignoreCase = true)) {
-                            Log.d(TAG, "Device filtered out - name doesn't match")
                             return
                         }
                     }
@@ -158,7 +150,6 @@ class RadarBleManager private constructor(private val context: Context) {
                         if (!deviceMac.replace(":", "")
                                 .replace("-", "")
                                 .contains(prefix, ignoreCase = true)) {
-                            //Log.d(TAG, "Filtered out device by MAC: $deviceMac")
                             return
                         }
                     }
@@ -169,15 +160,25 @@ class RadarBleManager private constructor(private val context: Context) {
                             uuid.toString().contains(prefix, ignoreCase = true)
                         }
                         if (!matchFound) {
-                            Log.d(TAG, "Filtered out device by UUID: ${serviceUuids.joinToString()}")
                             return
                         }
                     }
                 }
             }
+
+            // 转换为 DeviceInfo
+            val deviceInfo = DeviceInfo(
+                productorName = Productor.radarQL,
+                deviceName = result.device.name ?: "",
+                deviceId = result.device.name ?: "",
+                macAddress = result.device.address,
+                rssi = result.rssi,
+                originalDevice = result
+            )
+
             //Log.d(TAG, "Device passed filter: ${result.device.name}")
             mainHandler.post {
-                scanCallback?.invoke(result)
+                scanCallback?.invoke(deviceInfo)
             }
         }
 

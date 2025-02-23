@@ -17,6 +17,7 @@ dependencyResolutionManagement {
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "bleconfig"
+include(":libs")
 include(":app")
 include(":module-radar")
-include(":module-sleepace")  // 添加这一行
+include(":module-sleepace")

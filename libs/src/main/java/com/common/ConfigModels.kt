@@ -9,7 +9,7 @@
  * 4. 设备相关模型
  * 5. 厂商特定模型
  */
-package com.wisefido
+package com.common
 
 import java.io.Serializable
 
@@ -37,20 +37,17 @@ data class EspConfigResult(
  * ===== 3. 设备厂家层 =====
  */
 // 生产厂家枚举
-object Productor {
-    //A厂
-    const val radarQL = "radarQL"    // A厂
-    // 睡眠监测类产品
-    const val sleepBoardHS= "SleepBoardHS"  // B厂睡眠板
-    //ESP bluetooth
-    const val espBle= "espBle"  // Esp bluetooth chip
+enum class Productor {
+    radarQL,      // A厂雷达
+    sleepBoardHS, // B厂睡眠板
+    espBle        // 通用蓝牙设备
 }
 
 // 过滤器类型枚举
-object FilterType {
-    const val DEVICE_NAME = "DeviceName"
-    const val MAC = "MAC"
-    const val UUID = "UUID"
+enum class FilterType {
+    DEVICE_NAME,  // 设备名过滤
+    MAC,          // MAC地址过滤
+    UUID;         // UUID过滤
 }
 
 // A. 通用配置
@@ -82,7 +79,7 @@ data class DeviceHistory(
 
 // 统一的扫描结果
 data class DeviceInfo(
-    val productorName: String,    //产品厂家如radarQL, sleepBoardHS
+    val productorName: Productor,    //产品厂家如radarQL, sleepBoardHS
     val deviceName: String,      // 设备类型,扫描出来的
     val deviceId: String,      // 设备ID - 用于显示的设备标识
     val macAddress: String,    // MAC地址 - 用于匹配历史配网记录
@@ -128,6 +125,7 @@ data class SleepBoardConfig(
 /**
  * 状态码定义
  */
+/*
 object StatusCode {
     const val SUCCESS: Short = 0
     const val DISCONNECT: Short = -1
@@ -137,13 +135,15 @@ object StatusCode {
     const val PARAMETER_ERROR: Short = -5
     const val CERTIFICATION_EXPIRED: Short = -6
 }
+*/
+
 
 /**
  * 默认配置值
  */
 object DefaultConfig {
     const val RADAR_DEVICE_NAME = "TSBLU" // 默认雷达设备名称
-    const val DEFAULT_FILTER_TYPE = FilterType.DEVICE_NAME // 默认过滤器类型
+    val DEFAULT_FILTER_TYPE = FilterType.DEVICE_NAME // 默认过滤器类型
     const val DEFAULT_FILTER_PREFIX = "" // 默认过滤器前缀
 }
 

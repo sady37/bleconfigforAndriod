@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.wisefido"
-        minSdk = 28
+        minSdk = 31  //28
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -46,9 +46,12 @@ android {
 
 dependencies {
     // 依赖 A 厂和 B 厂模块
+    implementation(project(":libs"))
     implementation(project(":module-radar"))
     implementation(project(":module-sleepace"))
 
+    api(files("../libs/sdkcore.jar"))
+    api(files("../libs/wificonfigsdk.jar"))
 
     // Android 基础库
     implementation(libs.androidx.core.ktx)
