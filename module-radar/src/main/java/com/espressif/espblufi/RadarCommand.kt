@@ -12,7 +12,9 @@ enum class RadarCommand(val code: Int) {
     SET_MODE(0x06),          // 设置工作模式
     FACTORY_RESET(0x07),     // 恢复出厂设置
     GET_CONFIG(0x08),        // 获取配置
-    SET_CONFIG(0x09);        // 设置配置
+    SET_CONFIG(0x09),        // 设置配置
+    GET_UID(12),             // 获取设备UID
+    GET_WIFI_STATUS(62);     // 获取WiFi状态
 
     companion object {
         fun fromCode(code: Int): RadarCommand? = values().find { it.code == code }
@@ -22,7 +24,12 @@ enum class RadarCommand(val code: Int) {
      * 将命令转换为字节数组用于发送
      */
     fun toBytes(): ByteArray {
-        // 命令格式: [命令码, 数据长度, 数据内容(可选), 校验和]
+        // 特殊处理 UID 和 WiFi 状态查询命令
+        if (this == GET_UID || this == GET_WIFI_STATUS) {
+            return byteArrayOf(code.toByte(), ':'.toByte())
+        }
+
+        // 标准命令格式: [起始帧, 命令码, 数据长度, 校验和]
         return byteArrayOf(
             0xAA.toByte(),      // 起始帧
             code.toByte(),      // 命令码
@@ -35,6 +42,12 @@ enum class RadarCommand(val code: Int) {
      * 带参数的命令转换
      */
     fun toBytes(params: ByteArray): ByteArray {
+        // 特殊处理 UID 和 WiFi 状态查询命令
+        if (this == GET_UID || this == GET_WIFI_STATUS) {
+            return byteArrayOf(code.toByte(), ':'.toByte()) + params
+        }
+
+        // 标准命令格式: [起始帧, 命令码, 数据长度, 数据内容, 校验和]
         return byteArrayOf(
             0xAA.toByte(),           // 起始帧
             code.toByte(),           // 命令码

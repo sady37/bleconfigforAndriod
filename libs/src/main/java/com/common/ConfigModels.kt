@@ -1,6 +1,6 @@
 /**
  * File: ConfigModels.kt
- * Package: com.wisefido
+ * Package: com.common
  *
  * 数据模型定义：
  * 1. BLE基础数据类型
@@ -16,6 +16,50 @@ import java.io.Serializable
 /**
  * ===== 1. Android 蓝牙底层扩展 =====
  */
+/**
+ * BLE广播数据的结构化表示
+ */
+data class BleAdvertiseData(
+    val deviceName: String?,                       // 广播的设备名称
+    val txPowerLevel: Int?,                        // 发射功率水平
+    val advertiseFlags: Int?,                      // 广播标志
+    val serviceUuids: List<String>,                // 服务UUID列表
+    val manufacturerData: Map<Int, ByteArray>,     // 厂商数据, key是厂商ID
+    val serviceData: Map<String, ByteArray>,       // 服务数据, key是服务UUID
+    val isConnectable: Boolean                     // 是否可连接
+) : Serializable
+
+/**
+ * BLE扫描结果的结构化表示
+ */
+data class BleResult(
+    // 基本信息
+    val deviceName: String?,                  // 设备名称
+    val deviceAddress: String,                // MAC地址
+    val rssi: Int,                           // 信号强度
+    val timestamp: Long,                      // 时间戳(纳秒)
+
+    // 设备类型相关
+    val deviceType: Int,                      // DEVICE_TYPE_CLASSIC, DEVICE_TYPE_LE, DEVICE_TYPE_DUAL
+    val addressType: Int=0,                     // ADDRESS_TYPE_PUBLIC, ADDRESS_TYPE_RANDOM
+
+    // 广播数据
+    val advertiseData: BleAdvertiseData?,     // 广播数据
+
+    // 连接参数
+    val periodicAdvertisingInterval: Int,     // 周期性广播间隔
+    val primaryPhy: Int,                      // 主要PHY
+    val secondaryPhy: Int,                    // 次要PHY
+    val advertisingSid: Int,                  // 广播集ID
+    val txPower: Int,                         // 发射功率
+
+    // 其他信息
+    val isLegacy: Boolean,                    // 是否是传统广播
+    val isConnectable: Boolean,               // 是否可连接
+    val dataStatus: Int                       // 数据状态
+) : Serializable
+
+
 
 /**
  * ===== 2. ESP 芯片层扩展 =====

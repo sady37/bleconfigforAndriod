@@ -103,9 +103,10 @@ android:padding="@dimen/spacing_medium">
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
         android:text="@string/step_2"
-        android:textSize="@dimen/text_title"
-        android:textColor="@color/text_primary"/>
+        android:textColor="@color/text_primary"
+        android:textSize="@dimen/text_title" />
 
     <TextView
         android:layout_width="match_parent"
@@ -137,31 +138,72 @@ android:padding="@dimen/spacing_medium">
             android:inputType="text"/>
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- 服务器历史记录 -->
+    <!-- 历史记录区域 - 服务器和WiFi在同一行 -->
     <LinearLayout
-        android:id="@+id/layout_server_history"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="48dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:minHeight="48dp"
-        android:paddingHorizontal="@dimen/spacing_small"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?attr/selectableItemBackground">
+        android:gravity="center_vertical">
 
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/tv_recent_server"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/recent_servers"
-            android:textSize="@dimen/text_caption"
-            android:drawablePadding="@dimen/spacing_small"
+        <!-- 服务器历史记录 -->
+        <LinearLayout
+            android:id="@+id/layout_server_history"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:textColor="@color/text_secondary"/>
+            android:paddingHorizontal="@dimen/spacing_small"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/tv_recent_server"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/recent_servers"
+                android:textSize="@dimen/text_caption"
+                android:drawablePadding="@dimen/spacing_small"
+                android:gravity="center_vertical"
+                android:textColor="@color/text_secondary"/>
+        </LinearLayout>
+
+        <!-- 分隔线 -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="24dp"
+            android:background="@color/text_secondary"
+            android:alpha="0.2"/>
+
+        <!-- WiFi历史记录 -->
+        <LinearLayout
+            android:id="@+id/layout_wifi_history"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/tv_recent_wifi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/recent_networks"
+                android:textSize="@dimen/text_caption"
+                android:drawablePadding="@dimen/spacing_small"
+                android:gravity="center_vertical"
+                android:textColor="@color/text_secondary"/>
+        </LinearLayout>
     </LinearLayout>
 
+
     <!-- Step 3: WiFi配置 -->
+  <!--
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -169,7 +211,7 @@ android:padding="@dimen/spacing_medium">
         android:textSize="@dimen/text_title"
         android:textColor="@color/text_primary"
         android:layout_marginTop="@dimen/spacing_medium"/>
-
+  -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -189,6 +231,7 @@ android:padding="@dimen/spacing_medium">
             android:inputType="text"/>
     </com.google.android.material.textfield.TextInputLayout>
 
+
     <com.google.android.material.textfield.TextInputLayout
         style="@style/Widget.App.TextInputLayout"
         android:layout_marginTop="@dimen/spacing_small"
@@ -201,42 +244,52 @@ android:padding="@dimen/spacing_medium">
             android:inputType="textPassword"/>
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- WiFi历史记录 -->
-    <LinearLayout
-        android:id="@+id/layout_wifi_history"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:minHeight="48dp"
-        android:paddingHorizontal="@dimen/spacing_small"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?attr/selectableItemBackground">
 
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/tv_recent_wifi"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/recent_networks"
-            android:textSize="@dimen/text_caption"
-            android:drawablePadding="@dimen/spacing_small"
-            android:gravity="center_vertical"
-            android:textColor="@color/text_secondary"/>
-    </LinearLayout>
 
-    <!-- 配对按钮 -->
-    <Space
+
+    <!-- Status Display -->
+    <TextView
+        android:id="@+id/tv_status_output"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_pair"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/button_height"
-        android:text="@string/btn_pair"
+        android:layout_weight="1"
         android:layout_marginTop="@dimen/spacing_medium"
-        app:cornerRadius="28dp"/>
+        android:background="@drawable/bg_input_border"
+        android:textSize="14sp"
+        android:typeface="monospace"
+        android:padding="8dp"
+        android:gravity="top|start"/>
+
+
+    <!-- 操作按钮区域 -->
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="@dimen/spacing_medium"
+        android:gravity="center">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_pair"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="@dimen/button_height"
+            android:text="@string/btn_pair"
+            app:cornerRadius="28dp"/>
+
+        <Space
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_status"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="@dimen/button_height"
+            android:text="@string/btn_status"
+            app:cornerRadius="28dp"/>
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -1,7 +1,6 @@
 package com.wisefido
 
 import android.Manifest
-import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -28,7 +27,11 @@ import android.annotation.SuppressLint
 import android.os.Handler
 import android.os.Looper
 import android.app.Dialog
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.BluetoothLeScanner
 
+//common
 import com.common.DeviceInfo
 import com.common.Productor
 import com.common.FilterType
@@ -36,6 +39,10 @@ import com.common.DeviceHistory
 import com.common.ServerConfig
 import com.common.WifiConfig
 import com.common.DefaultConfig
+import com.common.BleUtils
+import com.common.BleResult
+import com.common.BleAdvertiseData
+import com.common.BleUtils.toBleResult
 
 import com.espressif.espblufi.RadarBleManager
 import com.bleconfig.sleepace.SleepaceBleManager
@@ -280,8 +287,15 @@ class ScanActivity : AppCompatActivity() {
         val deviceAdapter = DeviceAdapter(deviceList, configScan.getDeviceHistories()) { device ->
             Log.i(TAG, "Device selected: ${device.deviceId}, MAC: ${device.macAddress}")
 
+            val serializableDevice = if (device.originalDevice is ScanResult) {
+                val bleResult = (device.originalDevice as ScanResult).toBleResult()
+                device.copy(originalDevice = bleResult)
+            } else {
+                device
+            }
+
             val intent = Intent().apply {
-                putExtra(EXTRA_DEVICE_INFO, device)  // 直接传递 DeviceInfo 对象
+                putExtra(EXTRA_DEVICE_INFO, serializableDevice)
             }
 
             setResult(RESULT_OK, intent)

@@ -3,6 +3,8 @@ package com.bleconfig.sleepace
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.util.Log
+import com.sleepace.sdk.domain.BaseBean
+import com.sleepace.sdk.domain.Device
 import com.sleepace.sdk.domain.BleDevice
 import com.sleepace.sdk.interfs.IBleScanCallback
 import com.sleepace.sdk.manager.DeviceType
@@ -81,6 +83,7 @@ class SearchBleDevice(private val context: Context) {
                         this.deviceName = deviceName
                         this.deviceId = deviceName
                         this.deviceType = getDeviceTypeByName(deviceName)
+                        this.versionCode= getVersionCode()
                     }
                 )
 

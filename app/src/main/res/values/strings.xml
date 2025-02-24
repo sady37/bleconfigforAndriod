@@ -24,6 +24,7 @@
     <string name="hint_wifi_name">Wi-Fi Name</string>
     <string name="hint_wifi_password">Password</string>
     <string name="btn_pair">Pair WLAN</string>
+    <string name="btn_status">Status</string>
     <string name="unknown_device">unkown device</string>
     <string name="unknown_device_id">unknown device id</string>
 
@@ -50,6 +51,8 @@
     <string name="recent_networks_count">Recent Networks (%1$d)</string>
     <string name="recent_servers_count">Recent Servers (%1$d)</string>
     <string name="permissions_required">Bluetooth and Location permission required</string>
+    <string name="toast_config_required">To configure Wi-Fi or Server, at least one is required: </string>
+
 
     <!-- ScanActivity 相关文本 -->
     <string name="back">Back</string>
@@ -65,5 +68,6 @@
     <string name="bluetooth_permission_required">Bluetooth permission required</string>
     <string name="location_permission_required">Location permission required</string>
     <string name="config">Configuration</string>
+    <string name="connecting">Connecting</string>
 
 </resources>
