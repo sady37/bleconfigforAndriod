@@ -42,6 +42,7 @@ import java.util.Date
 import java.util.Locale
 import android.bluetooth.le.ScanResult
 
+
 //common data type
 import com.common.DeviceInfo
 import com.common.Productor
@@ -68,7 +69,7 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
         private const val PERMISSION_REQUEST_CODE = 100
         // 定义所需权限
-        private val REQUIRED_PERMISSIONS = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        private val REQUIRED_PERMISSIONS =
             arrayOf(
                 Manifest.permission.BLUETOOTH_SCAN,
                 Manifest.permission.BLUETOOTH_CONNECT,
@@ -77,16 +78,6 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.ACCESS_WIFI_STATE,
                 Manifest.permission.CHANGE_WIFI_STATE
             )
-        } else {
-            arrayOf(
-                Manifest.permission.BLUETOOTH,
-                Manifest.permission.BLUETOOTH_ADMIN,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_WIFI_STATE,
-                Manifest.permission.CHANGE_WIFI_STATE
-            )
-        }
     }
 
     // region 属性定义
@@ -136,6 +127,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun updateDeviceDisplay(device: DeviceInfo?) {
         if (device == null) {
             tvDeviceName.text = "No Device"
@@ -148,7 +140,7 @@ class MainActivity : AppCompatActivity() {
         layoutDeviceInfo.visibility = View.VISIBLE
         tvDeviceName.text = device.deviceName ?: ""
         tvDeviceId.text = device.deviceId ?: ""
-        tvDeviceRssi.text = "${device.rssi}dBm"
+        tvDeviceRssi.text = device.rssi.toString() + "dBm"
     }
 
     private val configLauncher = registerForActivityResult(
@@ -271,9 +263,9 @@ class MainActivity : AppCompatActivity() {
 
         PopupMenu(this, anchor).apply {
             recentWifis.forEach { wifi ->
-                menu.add(wifi.ssid)
+                menu.add(wifi.ssid.toString())
                     .setOnMenuItemClickListener {
-                        etWifiSsid.setText(wifi.ssid)
+                        etWifiSsid.setText(wifi.ssid.toString())
                         etWifiPassword.setText(wifi.password)
                         true
                     }
@@ -335,17 +327,49 @@ class MainActivity : AppCompatActivity() {
     // region配网操作
 
     private fun handlePairClick() {
-        saveCurrentConfig()
-
+        // 首先验证设备选择
         if (selectedDevice == null) {
             showMessage(getString(R.string.toast_select_device_first))
             return
         }
 
+        // 根据设备类型进行不同的验证和配网
         when (selectedDevice?.productorName) {
-            Productor.radarQL -> startRadarConfig()
-            Productor.sleepBoardHS -> startSleepConfig()
-            Productor.espBle -> startRadarConfig()
+            Productor.radarQL, Productor.espBle -> {
+                // A厂设备允许分离配置
+                val hasValidWifi = getCurrentWifiConfig() != null
+                val hasValidServer = getCurrentServerConfig() != null
+
+                // 如果两者都无效，给出提示
+                if (!hasValidWifi && !hasValidServer) {
+                    showMessage("Please enter at least a valid WiFi or server configuration")
+                    return
+                }
+
+                // 根据有效性决定调用哪个配置方法
+                if (hasValidWifi) {
+                    configureRadarWiFi()
+                }
+
+                if (hasValidServer) {
+                    configureRadarServer()
+                }
+            }
+
+            Productor.sleepBoardHS -> {
+                // B厂设备需要同时配置WiFi和服务器
+                val serverConfig = getCurrentServerConfig()
+                val wifiConfig = getCurrentWifiConfig()
+
+                if (serverConfig == null || wifiConfig == null) {
+                    showMessage("Both valid WiFi and server configuration are required")
+                    return
+                }
+
+                // 两者都有效，开始配网
+                startSleepConfig()
+            }
+
             else -> showMessage(getString(R.string.toast_unknown_device_type))
         }
     }
@@ -353,204 +377,114 @@ class MainActivity : AppCompatActivity() {
     /**
      * A厂(Radar)配网实现
      */
-    @SuppressLint("MissingPermission")
-    private fun startRadarConfig() {
-        // 获取服务器和WiFi配置
-        val serverAddress = etServerAddress.text.toString().trim()
-        val serverPortStr = etServerPort.text.toString().trim()
-        val ssid = etWifiSsid.text.toString().trim()
-        val password = etWifiPassword.text.toString()
-
-        // 验证服务器配置
+    @SuppressLint("MissingPermission", "SetTextI18x")
+    private fun configureRadarWiFi() {
+        val deviceAdd = selectedDevice?.macAddress ?: return
+        val wifiConfig = getCurrentWifiConfig() ?: return
+        val ssidString = wifiConfig.ssid ?: return
+        val password = wifiConfig.password ?: ""
         val radarManager = RadarBleManager.getInstance(this)
-        val serverConfig = getCurrentServerConfig()
-        val wifiConfig = getCurrentWifiConfig()
-
-        // 检查至少有一项配置
-        if (serverConfig == null && wifiConfig == null) {
-            showMessage(getString(R.string.toast_config_required))
-            return
-        }
-
-        // 连接设备
-        var deviceInfo =selectedDevice
-        val connected = deviceInfo?.let { radarManager.connectByAddress(this, it.macAddress) }
-        if (!connected!!) {
-            hideMessage()
-            showMessage("Failed to connect to device")
-            tvStatusOutput.text = "Connection failed"
-            return
-        }
 
         // 显示进度对话框
         showMessage("Connecting to device...", showProgress = true)
-        tvStatusOutput.text = "Starting device configuration..."
-
+        tvStatusOutput.text = "Starting wifi configuration..."
         tvStatusOutput.text = "${tvStatusOutput.text}\nDevice connected successfully"
 
-        // 配置WiFi（如果有）
-        if (wifiConfig != null) {
-            showMessage("Configuring WiFi...", showProgress = true)
-            configureRadarWiFi(radarManager, deviceInfo, wifiConfig)
-        }
+        radarManager.configureWifi(deviceAdd, ssidString, password) { result ->
+            // 处理结果
+            val success = result["success"]?.toBoolean() ?: false
 
-        // 配置服务器（如果有）
-        if (serverConfig != null) {
-            showMessage("Configuring server...", showProgress = true)
-            configureRadarServer(radarManager, deviceInfo, serverConfig)
-        }
+            if (success) {
+                // 在配网成功后保存 WiFi 配置
+                configScan.saveWifiConfig(wifiConfig)
 
-        // 如果两者都没有，就直接断开连接
-        if (wifiConfig == null && serverConfig == null) {
-            radarManager.disconnect()
-            hideMessage()
-            showMessage("No configuration to apply")
-        }
-    }
+                // 查找当前设备的历史记录
+                val existingHistory = configScan.getDeviceHistories().find { it.macAddress == deviceAdd }
 
-    /**
-     * 配置WiFi连接
-     */
-    private fun configureRadarWiFi(radarManager: RadarBleManager, deviceInfo: DeviceInfo, wifiConfig: WifiConfig) {
-        tvStatusOutput.text = "${tvStatusOutput.text}\nConfiguring WiFi..."
-        tvStatusOutput.text = "${tvStatusOutput.text}\n- WiFi SSID: ${wifiConfig.ssid}"
-
-        try {
-            // 创建BlufiConfigureParams对象
-            val configParams = com.espressif.espblufi.params.BlufiConfigureParams().apply {
-                // 配置工作模式为Station模式
-                opMode = com.espressif.espblufi.params.BlufiParameter.OP_MODE_STA
-                // 配置WiFi信息
-                staSSID = wifiConfig.ssid
-                staPassword = wifiConfig.password
-            }
-
-            // 配置设备
-            radarManager.configure(configParams) { success ->
-                tvStatusOutput.text = "${tvStatusOutput.text}\n- WiFi configuration result: ${if (success) "Success" else "Failed"}"
-
-                if (success) {
-                    // 保存WiFi配置到历史记录
-                    configScan.saveWifiConfig(wifiConfig)
-
-                    // 查找是否有服务器配置历史记录
-                    val serverConfig = configScan.getServerConfigs().firstOrNull()
-                    if (serverConfig != null) {
-                        // 保存设备历史
-                        val deviceHistory = DeviceHistory(
-                            deviceName = deviceInfo.deviceName,
-                            macAddress = deviceInfo.macAddress,
-                            rssi = deviceInfo.rssi,
-                            serverConfig = serverConfig,
-                            wifiConfig = wifiConfig
-                        )
-                        configScan.saveDeviceHistory(deviceHistory)
-                    }
-
-                    showMessage("WiFi configuration successful")
+                // 更新历史记录或创建新记录
+                val deviceHistory = if (existingHistory != null) {
+                    // 更新现有记录但保持原始服务器配置
+                    existingHistory.copy(
+                        wifiSsid = ssidString,
+                        configTime = System.currentTimeMillis() // 更新配置时间
+                    )
                 } else {
-                    showMessage("WiFi configuration failed")
+                    // 创建新记录
+                    DeviceHistory(
+                        deviceName = selectedDevice?.deviceName ?: "",
+                        macAddress = selectedDevice?.macAddress ?: "",
+                        rssi = selectedDevice?.rssi ?: -255,
+                        serverConfig = null,
+                        wifiSsid = ssidString ?: "",
+                        configTime = System.currentTimeMillis() // 设置配置时间
+                    )
                 }
 
-                // 更新历史记录显示
-                loadRecentConfigs()
+                // 保存更新后的记录
+                configScan.saveDeviceHistory(deviceHistory)
+
+                showMessage("WiFi configuration successful")
+            } else {
+                showMessage("WiFi configuration failed")
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "WiFi configuration error", e)
-            tvStatusOutput.text = "${tvStatusOutput.text}\n- Error: ${e.message}"
-            showMessage("WiFi configuration error")
         }
     }
 
     /**
-     * 配置服务器连接
+     * A厂(Radar)服务器配置实现
      */
-    private fun configureRadarServer(radarManager: RadarBleManager, deviceInfo: DeviceInfo, serverConfig: ServerConfig) {
-        tvStatusOutput.text = "${tvStatusOutput.text}\nConfiguring server..."
-        tvStatusOutput.text = "${tvStatusOutput.text}\n- Server: ${serverConfig.serverAddress}:${serverConfig.port}"
+    @SuppressLint("MissingPermission", "SetTextI18n")
+    private fun configureRadarServer() {
+        val device = selectedDevice ?: return
+        val serverConfig = getCurrentServerConfig() ?: return
+        val radarManager = RadarBleManager.getInstance(this)
 
-        try {
-            // 设置成功标志
-            var serverConfigSuccess = false
+        // 显示进度对话框
+        showMessage("Connecting to device...", showProgress = true)
+        tvStatusOutput.text = "Starting server configuration..."
 
-            // 1. 设置IP命令
-            val ipCommand = "1:${serverConfig.serverAddress}".toByteArray()
-            radarManager.postCustomData(ipCommand)
-            tvStatusOutput.text = "${tvStatusOutput.text}\n- Step 1: Sent server address"
+        // 配置服务器
+        radarManager.configureServer(device, serverConfig) { result ->
+            // 处理结果
+            val success = result["success"]?.toBoolean() ?: false
 
-            // 添加延迟，确保命令被处理
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                // 2. 设置端口命令
-                val portCommand = "2:${serverConfig.port}".toByteArray()
-                radarManager.postCustomData(portCommand)
-                tvStatusOutput.text = "${tvStatusOutput.text}\n- Step 2: Sent server port"
+            tvStatusOutput.text = "${tvStatusOutput.text}\nDevice connected successfully"
 
-                // 添加延迟
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    // 3. 设置协议命令 (固定值为3:0，表示TCP协议)
-                    val protocolCommand = "3:0".toByteArray()
-                    radarManager.postCustomData(protocolCommand)
-                    tvStatusOutput.text = "${tvStatusOutput.text}\n- Step 3: Sent protocol type (TCP)"
+            if (success) {
+                // 在配置成功后保存服务器配置
+                configScan.saveServerConfig(serverConfig)
 
-                    // 添加延迟
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        // 4. 确认命令 (固定值为8:0，表示保存并应用设置)
-                        val confirmCommand = "8:0".toByteArray()
-                        radarManager.postCustomData(confirmCommand)
-                        tvStatusOutput.text = "${tvStatusOutput.text}\n- Step 4: Sent confirmation command"
+                // 查找当前设备的历史记录
+                val existingHistory = configScan.getDeviceHistories().find { it.macAddress == device.macAddress }
 
-                        // 假设命令全部发送即为成功
-                        serverConfigSuccess = true
+                // 更新历史记录或创建新记录
+                val deviceHistory = if (existingHistory != null) {
+                    // 更新现有记录
+                    existingHistory.copy(
+                        serverConfig = serverConfig,
+                        configTime = System.currentTimeMillis() // 更新配置时间
+                    )
+                } else {
+                    // 创建新记录
+                    DeviceHistory(
+                        deviceName = device.deviceName,
+                        macAddress = device.macAddress,
+                        rssi = device.rssi,
+                        serverConfig = serverConfig,
+                        wifiSsid = existingHistory?.wifiSsid ?: "",
+                        configTime = System.currentTimeMillis() // 设置配置时间
+                    )
+                }
 
-                        // 延迟处理结果，确保设备有时间处理命令
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            if (serverConfigSuccess) {
-                                tvStatusOutput.text = "${tvStatusOutput.text}\n- Server configuration completed successfully"
+                // 保存更新后的记录
+                configScan.saveDeviceHistory(deviceHistory)
 
-                                // 保存服务器配置到历史记录
-                                configScan.saveServerConfig(serverConfig)
-
-                                // 查找是否有WiFi配置历史记录
-                                val wifiConfig = configScan.getWifiConfigs().firstOrNull()
-                                if (wifiConfig != null) {
-                                    // 保存设备历史
-                                    val deviceHistory = DeviceHistory(
-                                        deviceName = deviceInfo.deviceName,
-                                        macAddress = deviceInfo.macAddress,
-                                        rssi = deviceInfo.rssi,
-                                        serverConfig = serverConfig,
-                                        wifiConfig = wifiConfig
-                                    )
-                                    configScan.saveDeviceHistory(deviceHistory)
-                                }
-
-                                showMessage("Server configuration successful")
-                            } else {
-                                tvStatusOutput.text = "${tvStatusOutput.text}\n- Server configuration failed"
-                                showMessage("Server configuration failed")
-                            }
-
-                            // 更新历史记录显示
-                            loadRecentConfigs()
-
-                            // 断开设备连接
-                            radarManager.disconnect()
-                            tvStatusOutput.text = "${tvStatusOutput.text}\nDevice disconnected"
-                        }, 500)
-                    }, 500)
-                }, 500)
-            }, 500)
-        } catch (e: Exception) {
-            Log.e(TAG, "Server configuration error", e)
-            tvStatusOutput.text = "${tvStatusOutput.text}\n- Error: ${e.message}"
-            showMessage("Server configuration error")
-
-            // 出错时断开连接
-            radarManager.disconnect()
+                showMessage("Server configuration successful")
+            } else {
+                showMessage("Server configuration failed")
+            }
         }
     }
-
-
 
 
     /**
@@ -727,7 +661,7 @@ class MainActivity : AppCompatActivity() {
                                 info.append(" Disconnected")
                                 // 显示上次配置的WiFi
                                 deviceHistory?.let {
-                                    info.append(" (Last Config: ${it.wifiConfig.ssid})")
+                                    info.append(" (Last Config: ${it.wifiSsid})")
                                 }
                             }
                         }
@@ -760,7 +694,7 @@ class MainActivity : AppCompatActivity() {
                         else -> {
                             // 未知或无WiFi
                             if (deviceHistory != null) {
-                                info.append(" ${deviceHistory.wifiConfig.ssid} (Last Config)")
+                                info.append(" ${deviceHistory.wifiSsid} (Last Config)")
                             } else {
                                 info.append(" Unknown")
                             }
@@ -773,7 +707,7 @@ class MainActivity : AppCompatActivity() {
 
                 // 历史服务器配置
                 if (deviceHistory != null) {
-                    info.append("\n\nHistory Server: ${deviceHistory.serverConfig.serverAddress}:${deviceHistory.serverConfig.port}")
+                    info.append("\n\nHistory Server: ${deviceHistory.serverConfig?.serverAddress}:${deviceHistory.serverConfig?.port}")
                     info.append("\nLast Config Time: ${dateFormat.format(Date(deviceHistory.configTime))}")
                 }
 
@@ -811,8 +745,8 @@ class MainActivity : AppCompatActivity() {
             if (deviceHistory != null) {
                 val configTimeStr = dateFormat.format(Date(deviceHistory.configTime))
                 append("  Mode: Station\n")
-                append("  SSID: ${deviceHistory.wifiConfig.ssid}\n")
-                append("  Server: ${deviceHistory.serverConfig.serverAddress}:${deviceHistory.serverConfig.port}\n")
+                append("  SSID: ${deviceHistory.wifiSsid}\n")
+                append("  Server: ${deviceHistory.serverConfig?.serverAddress}:${deviceHistory.serverConfig?.port}\n")
                 append("  Config Time: $configTimeStr\n")
             } else {
                 append("  Not Configured\n")
@@ -947,7 +881,7 @@ class MainActivity : AppCompatActivity() {
                             macAddress = deviceMac,
                             rssi = selectedDevice?.rssi ?: -255,
                             serverConfig = serverConfig,
-                            wifiConfig = wifiConfig
+                            wifiSsid = wifiConfig.ssid
                         )
                     )
                 }

@@ -35,9 +35,6 @@ import android.bluetooth.le.BluetoothLeScanner
 import com.common.DeviceInfo
 import com.common.Productor
 import com.common.FilterType
-import com.common.DeviceHistory
-import com.common.ServerConfig
-import com.common.WifiConfig
 import com.common.DefaultConfig
 import com.common.BleUtils
 import com.common.BleResult
@@ -284,7 +281,7 @@ class ScanActivity : AppCompatActivity() {
         }
 
         // 初始化 RecyclerView
-        val deviceAdapter = DeviceAdapter(deviceList, configScan.getDeviceHistories()) { device ->
+        val deviceAdapter = DeviceAdapter(deviceList, ) { device ->
             Log.i(TAG, "Device selected: ${device.deviceId}, MAC: ${device.macAddress}")
 
             val serializableDevice = if (device.originalDevice is ScanResult) {
@@ -526,7 +523,6 @@ class ScanActivity : AppCompatActivity() {
      */
     private class DeviceAdapter(
         private val deviceList: List<DeviceInfo>,
-        private val configuredDevices: List<DeviceHistory>,
         private val onDeviceClick: (DeviceInfo) -> Unit
     ) : RecyclerView.Adapter<DeviceAdapter.DeviceViewHolder>() {
 
@@ -538,7 +534,6 @@ class ScanActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: DeviceViewHolder, position: Int) {
             val device = deviceList[position]
-            holder.bind(device, configuredDevices)
             holder.itemView.setOnClickListener { onDeviceClick(device) }
         }
 
@@ -546,19 +541,12 @@ class ScanActivity : AppCompatActivity() {
 
         class DeviceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             private val tvDeviceId: TextView = itemView.findViewById(R.id.tv_device_id)
-            private val tvMacConfigTime: TextView = itemView.findViewById(R.id.tv_mac_config_time)
+            private val tvDeviceMac: TextView = itemView.findViewById(R.id.tv_mac_config_time)
             private val tvRssi: TextView = itemView.findViewById(R.id.tv_rssi)
 
-            fun bind(device: DeviceInfo, configuredDevices: List<DeviceHistory>) {
+            fun bind(device: DeviceInfo,) {
                 tvDeviceId.text = device.deviceId
-
-                val configTime = configuredDevices.find { it.macAddress == device.macAddress }?.configTime
-                val macConfigTime = if (configTime != null) {
-                    "${device.macAddress} / ${formatConfigTime(configTime)}"
-                } else {
-                    device.macAddress
-                }
-                tvMacConfigTime.text = macConfigTime
+                tvDeviceMac.text = device.macAddress
                 tvRssi.text = itemView.context.getString(R.string.format_rssi, device.rssi)
             }
 

@@ -118,6 +118,13 @@ class ConfigStorage(context: Context) {
             ?: DefaultConfig.RADAR_DEVICE_NAME
     }
 
+    // 保存过滤器类型
+    fun saveFilterType(filterType: String) {
+        prefs.edit().apply {
+            putString(KEY_FILTER_TYPE, filterType)
+            apply()
+        }
+    }
 
     // 获取过滤器类型
     fun getFilterType(): FilterType {

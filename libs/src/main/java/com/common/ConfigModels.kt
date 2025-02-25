@@ -11,6 +11,7 @@
  */
 package com.common
 
+import android.net.wifi.WifiSsid
 import java.io.Serializable
 
 /**
@@ -117,8 +118,8 @@ data class DeviceHistory(
     val macAddress: String,     // 设备 MAC 地址
     val rssi: Int,              // 信号强度
     val configTime: Long = System.currentTimeMillis(),  // 配网时间
-    val serverConfig: ServerConfig,  // 服务器配置
-    val wifiConfig: WifiConfig       // Wi-Fi 配置
+    val serverConfig: ServerConfig?,  // 服务器配置
+    val wifiSsid: String?       // Wi-Fi 配置
 ) : Serializable
 
 // 统一的扫描结果
