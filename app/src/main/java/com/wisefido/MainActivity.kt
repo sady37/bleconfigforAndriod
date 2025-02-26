@@ -41,6 +41,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.bluetooth.le.ScanResult
+import android.os.Handler
+import android.os.Looper
 
 
 //common data type
@@ -162,6 +164,7 @@ class MainActivity : AppCompatActivity() {
         initViews()
         setupHistoryViews()
         loadRecentConfigs()
+
     }
     // endregion
 
@@ -205,6 +208,7 @@ class MainActivity : AppCompatActivity() {
         // 配对按钮点击事件
         btnPair.setOnClickListener {
             handlePairClick()
+
         }
 
         btnStatus.setOnClickListener {
@@ -228,6 +232,7 @@ class MainActivity : AppCompatActivity() {
 
         // 加载最近配置
         loadRecentConfigs()
+
     }
 
     private fun setupHistoryViews() {
@@ -276,6 +281,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadRecentConfigs() {
         val recentServers = configScan.getServerConfigs()
+
         if (recentServers.isNotEmpty()) {
             tvRecentServer.text = getString(R.string.recent_servers_count, recentServers.size.coerceAtMost(5))
             layoutServerHistory.visibility = View.VISIBLE
@@ -345,13 +351,17 @@ class MainActivity : AppCompatActivity() {
                     showMessage("Please enter at least a valid WiFi or server configuration")
                     return
                 }
-
-                // 根据有效性决定调用哪个配置方法
-                if (hasValidWifi) {
+                // 如果两者都需要配置，先配置WiFi，然后通过回调处理服务器配置
+                if (hasValidWifi && hasValidServer) {
+                    // 只启动WiFi配置，服务器配置将在WiFi成功后的回调中启动
                     configureRadarWiFi()
                 }
-
-                if (hasValidServer) {
+                // 只配置WiFi
+                else if (hasValidWifi) {
+                    configureRadarWiFi()
+                }
+                // 只配置服务器
+                else {
                     configureRadarServer()
                 }
             }
@@ -395,36 +405,23 @@ class MainActivity : AppCompatActivity() {
             val success = result["success"]?.toBoolean() ?: false
 
             if (success) {
-                // 在配网成功后保存 WiFi 配置
                 configScan.saveWifiConfig(wifiConfig)
-
-                // 查找当前设备的历史记录
-                val existingHistory = configScan.getDeviceHistories().find { it.macAddress == deviceAdd }
-
-                // 更新历史记录或创建新记录
-                val deviceHistory = if (existingHistory != null) {
-                    // 更新现有记录但保持原始服务器配置
-                    existingHistory.copy(
-                        wifiSsid = ssidString,
-                        configTime = System.currentTimeMillis() // 更新配置时间
-                    )
-                } else {
-                    // 创建新记录
-                    DeviceHistory(
-                        deviceName = selectedDevice?.deviceName ?: "",
-                        macAddress = selectedDevice?.macAddress ?: "",
-                        rssi = selectedDevice?.rssi ?: -255,
-                        serverConfig = null,
-                        wifiSsid = ssidString ?: "",
-                        configTime = System.currentTimeMillis() // 设置配置时间
-                    )
-                }
-
-                // 保存更新后的记录
-                configScan.saveDeviceHistory(deviceHistory)
-
+                // 更新状态输出
+                tvStatusOutput.text = "${tvStatusOutput.text}\nWiFi configuration successful"
+                // 处理结果
+                handleConfigResult(true)
+                // 显示弹窗提示
                 showMessage("WiFi configuration successful")
-            } else {
+                // 检查是否需要配置服务器，增加时延到3秒
+                if (getCurrentServerConfig() != null) {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        configureRadarServer()
+                    }, 3000) // 3秒延时
+                }
+            }else{
+                // 更新状态输出
+                tvStatusOutput.text = "${tvStatusOutput.text}\nWiFi configuration failed"
+                // 显示弹窗提示
                 showMessage("WiFi configuration failed")
             }
         }
@@ -433,7 +430,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * A厂(Radar)服务器配置实现
      */
-    @SuppressLint("MissingPermission", "SetTextI18n")
+    @SuppressLint("MissingPermission", "SetTextI18x")
     private fun configureRadarServer() {
         val device = selectedDevice ?: return
         val serverConfig = getCurrentServerConfig() ?: return
@@ -443,49 +440,26 @@ class MainActivity : AppCompatActivity() {
         showMessage("Connecting to device...", showProgress = true)
         tvStatusOutput.text = "Starting server configuration..."
 
-        // 配置服务器
+        // 配置服务器 - 移除嵌套调用
         radarManager.configureServer(device, serverConfig) { result ->
             // 处理结果
             val success = result["success"]?.toBoolean() ?: false
 
-            tvStatusOutput.text = "${tvStatusOutput.text}\nDevice connected successfully"
+            tvStatusOutput.text = "${tvStatusOutput.text}\nServer configuration ${if (success) "successful" else "failed"}!"
 
             if (success) {
-                // 在配置成功后保存服务器配置
+                // 保存服务器配置
                 configScan.saveServerConfig(serverConfig)
-
-                // 查找当前设备的历史记录
-                val existingHistory = configScan.getDeviceHistories().find { it.macAddress == device.macAddress }
-
-                // 更新历史记录或创建新记录
-                val deviceHistory = if (existingHistory != null) {
-                    // 更新现有记录
-                    existingHistory.copy(
-                        serverConfig = serverConfig,
-                        configTime = System.currentTimeMillis() // 更新配置时间
-                    )
-                } else {
-                    // 创建新记录
-                    DeviceHistory(
-                        deviceName = device.deviceName,
-                        macAddress = device.macAddress,
-                        rssi = device.rssi,
-                        serverConfig = serverConfig,
-                        wifiSsid = existingHistory?.wifiSsid ?: "",
-                        configTime = System.currentTimeMillis() // 设置配置时间
-                    )
-                }
-
-                // 保存更新后的记录
-                configScan.saveDeviceHistory(deviceHistory)
-
+                // 处理结果
+                handleConfigResult(true)
+                // 显示弹窗提示
                 showMessage("Server configuration successful")
+
             } else {
                 showMessage("Server configuration failed")
             }
         }
     }
-
 
     /**
      * B厂(Sleepace)配网实现
@@ -503,9 +477,6 @@ class MainActivity : AppCompatActivity() {
         val serverConfig = getCurrentServerConfig()
         val wifiConfig = getCurrentWifiConfig()
 
-        // 保存配置
-        serverConfig?.let { configScan.saveServerConfig(it) }
-        wifiConfig?.let { configScan.saveWifiConfig(it) }
 
         // 检查是否是UDP端口
         val portStr = etServerPort.text.toString().lowercase()
@@ -537,6 +508,7 @@ class MainActivity : AppCompatActivity() {
                     when (callbackData.status) {
                         StatusCode.SUCCESS -> {
                             hideMessage()
+                            // 处理配置结果
                             handleConfigResult(true)
                             if (callbackData.result is DeviceInfo) {
                                 val deviceInfo = callbackData.result as DeviceInfo
@@ -544,7 +516,7 @@ class MainActivity : AppCompatActivity() {
                             }
                             showMessage("""
                                 WiFi configuration successful.
-                                Radar Light:Green
+                                  <-SleepBoard WiFi Light->
                                 SleepBoard WiFi Light:
                                 Solid Red->wifi connect fail
                                 Flashing red-> Wifi connect success,Server Connect Fail
@@ -570,7 +542,7 @@ class MainActivity : AppCompatActivity() {
                             handleConfigResult(false)
                             showMessage("""
                                 WiFi configuration fail.
-                                WiFi light:Red, Blue:connect other mobile 
+                                  <-SleepBoard WiFi Light->
                                 Solid Red->wifi connect fail
                                 Flashing red-> Wifi connect success,Server Connect Fail
                                 Solid Green-> wifi connect Success,Server connect Success
@@ -707,7 +679,7 @@ class MainActivity : AppCompatActivity() {
 
                 // 历史服务器配置
                 if (deviceHistory != null) {
-                    info.append("\n\nHistory Server: ${deviceHistory.serverConfig?.serverAddress}:${deviceHistory.serverConfig?.port}")
+                    info.append("\n\nHistory Server: ${deviceHistory.serverConfig?.serverAddress}:${deviceHistory.serverConfig?.protocol}${deviceHistory.serverConfig?.port}")
                     info.append("\nLast Config Time: ${dateFormat.format(Date(deviceHistory.configTime))}")
                 }
 
@@ -746,7 +718,7 @@ class MainActivity : AppCompatActivity() {
                 val configTimeStr = dateFormat.format(Date(deviceHistory.configTime))
                 append("  Mode: Station\n")
                 append("  SSID: ${deviceHistory.wifiSsid}\n")
-                append("  Server: ${deviceHistory.serverConfig?.serverAddress}:${deviceHistory.serverConfig?.port}\n")
+                append("  Server: ${deviceHistory.serverConfig?.serverAddress}:${deviceHistory.serverConfig?.protocol}${deviceHistory.serverConfig?.port}\n")
                 append("  Config Time: $configTimeStr\n")
             } else {
                 append("  Not Configured\n")
@@ -864,32 +836,37 @@ class MainActivity : AppCompatActivity() {
             val deviceMac = when (val device = selectedDevice?.originalDevice) {
                 is ScanResult -> device.device.address
                 is BleDevice -> device.address
-                else -> return
+                else -> selectedDevice?.macAddress ?: return
             }
 
             val deviceName = when (val device = selectedDevice?.originalDevice) {
                 is ScanResult -> device.device.name ?: ""
                 is BleDevice -> device.deviceName ?: ""
-                else -> return
+                else -> selectedDevice?.deviceName ?: ""
             }
 
-            getCurrentServerConfig()?.let { serverConfig ->
-                getCurrentWifiConfig()?.let { wifiConfig ->
-                    configScan.saveDeviceHistory(
-                        DeviceHistory(
-                            deviceName = deviceName,
-                            macAddress = deviceMac,
-                            rssi = selectedDevice?.rssi ?: -255,
-                            serverConfig = serverConfig,
-                            wifiSsid = wifiConfig.ssid
-                        )
-                    )
-                }
+            // 获取当前配置
+            val serverConfig = getCurrentServerConfig()
+            val wifiConfig = getCurrentWifiConfig()
+
+            if (serverConfig != null || wifiConfig != null) {
+                // 创建或更新设备历史记录
+                val deviceHistory = DeviceHistory(
+                    deviceName = deviceName,
+                    macAddress = deviceMac,
+                    rssi = selectedDevice?.rssi ?: -255,
+                    serverConfig = serverConfig,
+                    wifiSsid = wifiConfig?.ssid ?: ""
+                )
+
+                // 保存设备历史记录
+                configScan.saveDeviceHistory(deviceHistory)
             }
+
+            // 刷新UI显示
             loadRecentConfigs()
+
             showMessage(getString(R.string.toast_config_success))
-        } else {
-//            showMessage(getString(R.string.toast_config_failed))
         }
     }
 

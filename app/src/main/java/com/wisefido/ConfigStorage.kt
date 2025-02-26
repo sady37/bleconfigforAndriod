@@ -11,6 +11,7 @@ import com.common.DeviceHistory
 import com.common.ServerConfig
 import com.common.WifiConfig
 import com.common.DefaultConfig
+import android.util.Log
 
 
 class ConfigStorage(context: Context) {
@@ -19,6 +20,8 @@ class ConfigStorage(context: Context) {
 
     // 保存服务器配置
     fun saveServerConfig(serverConfig: ServerConfig) {
+        Log.d("ConfigStorage", "Saving server config: ${serverConfig.serverAddress}:${serverConfig.port}")
+
         val servers = getServerConfigs().toMutableList()
 
         // 移除相同配置
@@ -28,7 +31,8 @@ class ConfigStorage(context: Context) {
         servers.add(0, serverConfig)
 
         // 保持最多 5 条记录
-        if (servers.size > 5) {
+        if (servers.size >= 5) {
+            Log.d("ConfigStorage", "Found ${servers.size} configs, removing last one: ${servers.last().serverAddress}:${servers.last().port}")
             servers.removeAt(servers.lastIndex)
         }
 
@@ -37,12 +41,16 @@ class ConfigStorage(context: Context) {
             putString(KEY_SERVER_CONFIGS, gson.toJson(servers))
             apply()
         }
+        // 验证保存结果
+        val savedConfigs = getServerConfigs()
+        Log.d("ConfigStorage", "After save, configs: ${savedConfigs.map { "${it.serverAddress}:${it.port}" }}")
     }
 
     // 获取服务器配置
     fun getServerConfigs(): List<ServerConfig> {
         val json = prefs.getString(KEY_SERVER_CONFIGS, "[]") ?: "[]"
         val type = object : TypeToken<List<ServerConfig>>() {}.type
+
         return gson.fromJson(json, type)
     }
 
@@ -95,6 +103,16 @@ class ConfigStorage(context: Context) {
             putString(KEY_DEVICE_HISTORIES, gson.toJson(histories))
             apply()
         }
+    }
+
+    fun clearServerConfigs() {
+        prefs.edit().remove(KEY_SERVER_CONFIGS).apply()
+        Log.d("ConfigStorage", "All server configs cleared")
+    }
+
+    fun clearWifiConfigs() {
+        prefs.edit().remove(KEY_WIFI_CONFIGS).apply()
+        Log.d("ConfigStorage", "All server configs cleared")
     }
 
     // 获取配网成功的设备记录

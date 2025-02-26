@@ -482,6 +482,7 @@ class RadarBleManager private constructor(private val context: Context) {
                 Log.d(TAG, "Status code: $status")
 
                 if (status == STATUS_SUCCESS) {
+                    /*
                     Log.d(TAG, "----- Basic Information -----")
                     Log.d(TAG, "Operation mode: ${response.opMode}")
                     Log.d(TAG, "STA connection status: ${response.staConnectionStatus}")
@@ -498,7 +499,7 @@ class RadarBleManager private constructor(private val context: Context) {
                     Log.d(TAG, "SoftAP Password: ${response.softAPPassword}")
                     Log.d(TAG, "SoftAP Channel: ${response.softAPChannel}")
                     Log.d(TAG, "SoftAP Max Connection Count: ${response.softAPMaxConnectionCount}")
-
+                    */
                     // 尝试通过反射获取所有字段
                     try {
                         Log.d(TAG, "----- All Fields via Reflection -----")
@@ -517,8 +518,8 @@ class RadarBleManager private constructor(private val context: Context) {
                     }
 
                     // 记录完整对象的文本表示
-                    Log.d(TAG, "----- Complete Object toString -----")
-                    Log.d(TAG, response.toString())
+                   // Log.d(TAG, "----- Complete Object toString -----")
+                    //Log.d(TAG, response.toString())
 
                     // 使用 statusMap 记录重要信息
                     hasWifiStatus = true
