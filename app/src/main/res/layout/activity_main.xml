@@ -1,103 +1,133 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-xmlns:app="http://schemas.android.com/apk/res-auto"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-android:orientation="vertical"
-android:padding="@dimen/spacing_medium">
-
-<!-- Title -->
-<TextView
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="@string/title_ble_wifi"
-    android:textSize="@dimen/text_headline"
-    android:textColor="@color/text_primary"
-    android:gravity="center"
-    android:layout_marginBottom="@dimen/spacing_large"/>
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="@dimen/spacing_medium">
 
-<!-- Step 1: Device Selection -->
-<TextView
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="@string/step_1"
-    android:textSize="@dimen/text_title"
-    android:textColor="@color/text_primary"/>
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/title_ble_wifi"
+        android:textSize="@dimen/text_headline"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:layout_marginBottom="@dimen/spacing_large"/>
 
-<TextView
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="@string/hint_select_device"
-    android:textSize="@dimen/text_caption"
-    android:textColor="@color/text_secondary"
-    android:layout_marginTop="@dimen/spacing_tiny"/>
+    <!-- Step 1、Search按钮与操作按钮在同一行 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
-<!-- Device info display and search button container -->
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:layout_marginTop="@dimen/spacing_small"
-    android:layout_marginBottom="@dimen/spacing_medium">
+        <!-- Step 1 标题 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/step_1"
+            android:textSize="@dimen/text_title"
+            android:textColor="@color/text_primary"/>
+
+        <!-- 4dp 间隔 -->
+        <Space
+            android:layout_width="20dp"
+            android:layout_height="1dp"/>
+
+        <!-- Pair 按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_pair"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="@string/btn_pair"
+            android:minWidth="90dp"
+            app:cornerRadius="20dp"/>
+
+        <!-- 间隔 -->
+        <Space
+            android:layout_width="20dp"
+            android:layout_height="20dp"/>
+
+        <!-- Status 按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_status"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="@string/btn_status"
+            android:minWidth="90dp"
+            app:cornerRadius="20dp"/>
+
+        <!-- 间隔 -->
+        <Space
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="1dp"/>
+
+        <!-- Search button -->
+        <ImageButton
+            android:id="@+id/btn_search"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_search"
+            app:tint="@color/text_primary"
+            android:contentDescription="Search device"/>
+    </LinearLayout>
 
     <!-- Device info display -->
     <LinearLayout
-        android:id="@+id/layout_device_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="@dimen/spacing_medium"
-        android:background="@drawable/bg_input_border">
+        android:layout_marginTop="@dimen/spacing_small"
+        android:layout_marginBottom="@dimen/spacing_medium">
 
-        <!-- Device ID -->
-        <TextView
-            android:id="@+id/tv_device_id"
-            android:layout_width="150dp"
+        <!-- Device info display -->
+        <LinearLayout
+            android:id="@+id/layout_device_info"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="@dimen/text_body"
-            android:textColor="@color/text_primary"
-            android:maxLines="1"
-            android:ellipsize="end"/>
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="@dimen/spacing_medium"
+            android:background="@drawable/bg_input_border">
 
-        <!-- Device Name -->
-        <TextView
-            android:id="@+id/tv_device_name"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="@dimen/spacing_small"
-            android:textSize="@dimen/text_body"
-            android:textColor="@color/text_primary"
-            android:maxLines="1"
-            android:ellipsize="end"/>
+            <!-- Device ID -->
+            <TextView
+                android:id="@+id/tv_device_id"
+                android:layout_width="150dp"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_body"
+                android:textColor="@color/text_primary"
+                android:maxLines="1"
+                android:ellipsize="end"/>
 
-        <!-- RSSI -->
-        <TextView
-            android:id="@+id/tv_device_rssi"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/spacing_small"
-            android:textSize="@dimen/text_caption"
-            android:textColor="@color/text_secondary"
-            android:gravity="end"/>
+            <!-- Device Name -->
+            <TextView
+                android:id="@+id/tv_device_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="@dimen/spacing_small"
+                android:textSize="@dimen/text_body"
+                android:textColor="@color/text_primary"
+                android:maxLines="1"
+                android:ellipsize="end"/>
 
+            <!-- RSSI -->
+            <TextView
+                android:id="@+id/tv_device_rssi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_small"
+                android:textSize="@dimen/text_caption"
+                android:textColor="@color/text_secondary"
+                android:gravity="end"/>
+        </LinearLayout>
     </LinearLayout>
-
-    <!-- Search button -->
-    <ImageButton
-        android:id="@+id/btn_search"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="@dimen/spacing_small"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@android:drawable/ic_menu_search"
-        app:tint="@color/text_primary"
-        android:contentDescription="Search device"/>
-
-</LinearLayout>
 
     <!-- Step 2: 服务器配置 -->
     <TextView
@@ -105,8 +135,8 @@ android:padding="@dimen/spacing_medium">
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:text="@string/step_2"
-        android:textColor="@color/text_primary"
-        android:textSize="@dimen/text_title" />
+        android:textSize="@dimen/text_title"
+        android:textColor="@color/text_primary" />
 
     <TextView
         android:layout_width="match_parent"
@@ -116,28 +146,43 @@ android:padding="@dimen/spacing_medium">
         android:textColor="@color/text_secondary"
         android:layout_marginTop="@dimen/spacing_tiny"/>
 
-    <com.google.android.material.textfield.TextInputLayout
-        style="@style/Widget.App.TextInputLayout"
+    <!-- 服务器地址和端口并排显示，宽度比例 7:3 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:layout_marginTop="@dimen/spacing_small">
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_server_address"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/input_height"
-            android:hint="@string/hint_server_address"
-            android:text="ipv4.owl.wisefido.com"
-            android:inputType="text"/>
-    </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
-        style="@style/Widget.App.TextInputLayout"
-        android:layout_marginTop="@dimen/spacing_small">
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_server_port"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/input_height"
-            android:hint="@string/hint_server_port"
-            android:inputType="text"/>
-    </com.google.android.material.textfield.TextInputLayout>
+        <!-- 服务器地址 -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="7">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_server_address"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/input_height"
+                android:hint="@string/hint_server_address"
+                android:text="ipv4.owl.wisefido.com"
+                android:inputType="text"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- 服务器端口 -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:layout_marginStart="@dimen/spacing_small">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_server_port"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/input_height"
+                android:hint="@string/hint_server_port"
+                android:inputType="text"/>
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
 
     <!-- 历史记录区域 - 服务器和WiFi在同一行 -->
     <LinearLayout
@@ -202,17 +247,6 @@ android:padding="@dimen/spacing_medium">
         </LinearLayout>
     </LinearLayout>
 
-
-    <!-- Step 3: WiFi配置 -->
-  <!--
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/step_3"
-        android:textSize="@dimen/text_title"
-        android:textColor="@color/text_primary"
-        android:layout_marginTop="@dimen/spacing_medium"/>
-  -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -221,32 +255,43 @@ android:padding="@dimen/spacing_medium">
         android:textColor="@color/text_secondary"
         android:layout_marginTop="@dimen/spacing_tiny"/>
 
-    <com.google.android.material.textfield.TextInputLayout
-        style="@style/Widget.App.TextInputLayout"
+    <!-- WiFi名称和密码并排显示，宽度比例 5:5 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:layout_marginTop="@dimen/spacing_small">
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_wifi_ssid"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/input_height"
-            android:hint="@string/hint_wifi_name"
-            android:inputType="text"/>
-    </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- WiFi名称 -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="5">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_wifi_ssid"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/input_height"
+                android:hint="@string/hint_wifi_name"
+                android:inputType="text"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
-        style="@style/Widget.App.TextInputLayout"
-        android:layout_marginTop="@dimen/spacing_small"
-        app:endIconMode="password_toggle">
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_wifi_password"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/input_height"
-            android:hint="@string/hint_wifi_password"
-            android:inputType="textPassword"/>
-    </com.google.android.material.textfield.TextInputLayout>
-
-
-
+        <!-- WiFi密码 -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="5"
+            android:layout_marginStart="@dimen/spacing_small"
+            app:endIconMode="password_toggle">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_wifi_password"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/input_height"
+                android:hint="@string/hint_wifi_password"
+                android:inputType="textPassword"/>
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
 
     <!-- Status Display -->
     <TextView
@@ -260,37 +305,4 @@ android:padding="@dimen/spacing_medium">
         android:typeface="monospace"
         android:padding="8dp"
         android:gravity="top|start"/>
-
-
-    <!-- 操作按钮区域 -->
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="@dimen/spacing_medium"
-        android:gravity="center">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_pair"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="@dimen/button_height"
-            android:text="@string/btn_pair"
-            app:cornerRadius="28dp"/>
-
-        <Space
-            android:layout_width="50dp"
-            android:layout_height="wrap_content"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_status"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="@dimen/button_height"
-            android:text="@string/btn_status"
-            app:cornerRadius="28dp"/>
-
-    </LinearLayout>
-
 </LinearLayout>

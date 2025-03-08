@@ -3,8 +3,6 @@ package com.bleconfig.sleepace
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.util.Log
-import com.sleepace.sdk.domain.BaseBean
-import com.sleepace.sdk.domain.Device
 import com.sleepace.sdk.domain.BleDevice
 import com.sleepace.sdk.interfs.IBleScanCallback
 import com.sleepace.sdk.manager.DeviceType
@@ -15,6 +13,7 @@ import android.annotation.SuppressLint
 //common data type
 import com.common.DeviceInfo
 import com.common.Productor
+import com.common.BleDeviceManager
 
 
 
@@ -59,32 +58,28 @@ class SearchBleDevice(private val context: Context) {
             val deviceName = BleAdvUtil.getDeviceName(scanRecord)?.trim()
             val deviceType = getDeviceTypeByName(deviceName)
             Log.d(TAG, "onLeScan -deviceType: $deviceType, deviceName: $deviceName, rssi: $rssi, address: ${device.address}")
-            /*
+
             if (checkDeviceName(deviceName)) {
-                val ble = BleDevice().apply {
+                // 创建 BleDevice 对象
+                val bleDevice = BleDevice().apply {
                     this.modelName = modelName
                     this.address = device.address
                     this.deviceName = deviceName
                     this.deviceId = deviceName
                     this.deviceType = getDeviceTypeByName(deviceName)
-
+                    this.versionCode = getVersionCode()
                 }
-                */
-            if (checkDeviceName(deviceName)) {
+
+                // 保存原始设备到 BleDeviceManager
+                BleDeviceManager.saveDevice(device.address, bleDevice)
+
+                // 创建DeviceInfo
                 val deviceInfo = DeviceInfo(
                     productorName = Productor.sleepBoardHS,
-                    deviceName =  deviceType?.toString()?.replace("DEVICE_TYPE_", "") ?: "",
+                    deviceName = deviceType?.toString()?.replace("DEVICE_TYPE_", "") ?: "",
                     deviceId = deviceName ?: "",
                     macAddress = device.address,
-                    rssi = rssi,
-                    originalDevice = BleDevice().apply {
-                        this.modelName = modelName
-                        this.address = device.address
-                        this.deviceName = deviceName
-                        this.deviceId = deviceName
-                        this.deviceType = getDeviceTypeByName(deviceName)
-                        this.versionCode= getVersionCode()
-                    }
+                    rssi = rssi
                 )
 
                 // 直接调用监听器，返回 DeviceInfo

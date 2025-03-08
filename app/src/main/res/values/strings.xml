@@ -13,9 +13,9 @@
 
     <!-- MainActivity 相关文本 -->
     <string name="title_ble_wifi">BLE to Wi-Fi Configuration</string>
-    <string name="step_1">STEP 1</string>
+    <string name="step_1">Device</string>
     <string name="hint_select_device">Select device ID</string>
-    <string name="step_2">STEP 2</string>
+    <string name="step_2">Config</string>
     <string name="hint_server_info">Server information to be connected by the device</string>
     <string name="hint_server_address">example: 47.90.180.176 or ipv4.owl.wisefido.com</string>
     <string name="hint_server_port">tcp29010</string>
@@ -23,7 +23,7 @@
     <string name="hint_select_wlan">Select WLAN to connect device</string>
     <string name="hint_wifi_name">Wi-Fi Name</string>
     <string name="hint_wifi_password">Password</string>
-    <string name="btn_pair">Pair WLAN</string>
+    <string name="btn_pair">Pair</string>
     <string name="btn_status">Status</string>
     <string name="unknown_device">unkown device</string>
     <string name="unknown_device_id">unknown device id</string>
@@ -52,7 +52,12 @@
     <string name="recent_servers_count">Recent Servers (%1$d)</string>
     <string name="permissions_required">Bluetooth and Location permission required</string>
     <string name="toast_config_required">To configure Wi-Fi or Server, at least one is required: </string>
-
+    <string name="status_text_with_connection">%1$s\nDevice con successfully</string>nected
+    <string name="status_text_with_device_connected">%1$s\nDevice connected successfully</string>
+    <string name="status_text_with_wifi_success">%1$s\nWiFi configuration successful</string>
+    <string name="status_text_with_wifi_failed">%1$s\nWiFi configuration failed</string>
+    <string name="status_text_with_server_success">%1$s\nServer configuration successful!</string>
+    <string name="status_text_with_server_failed">%1$s\nServer configuration failed!</string>
 
     <!-- ScanActivity 相关文本 -->
     <string name="back">Back</string>

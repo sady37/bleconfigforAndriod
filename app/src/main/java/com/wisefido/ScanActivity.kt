@@ -28,21 +28,16 @@ import android.os.Handler
 import android.os.Looper
 import android.app.Dialog
 import android.bluetooth.le.ScanResult
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.BluetoothLeScanner
+
 
 //common
 import com.common.DeviceInfo
 import com.common.Productor
 import com.common.FilterType
 import com.common.DeviceHistory
-import com.common.ServerConfig
-import com.common.WifiConfig
 import com.common.DefaultConfig
-import com.common.BleUtils
-import com.common.BleResult
-import com.common.BleAdvertiseData
 import com.common.BleUtils.toBleResult
+import com.common.BleDeviceManager
 
 import com.espressif.espblufi.RadarBleManager
 import com.bleconfig.sleepace.SleepaceBleManager
@@ -206,7 +201,6 @@ class ScanActivity : AppCompatActivity() {
                             deviceId = bleDevice.deviceName ?: "",
                             macAddress = bleDevice.address,
                             rssi = 0,
-                            originalDevice = bleDevice
                         )
 
                         // 添加到设备列表
@@ -287,20 +281,17 @@ class ScanActivity : AppCompatActivity() {
         val deviceAdapter = DeviceAdapter(deviceList, configScan.getDeviceHistories()) { device ->
             Log.i(TAG, "Device selected: ${device.deviceId}, MAC: ${device.macAddress}")
 
-            val serializableDevice = if (device.originalDevice is ScanResult) {
-                val bleResult = (device.originalDevice as ScanResult).toBleResult()
-                device.copy(originalDevice = bleResult)
-            } else {
-                device
-            }
 
             val intent = Intent().apply {
-                putExtra(EXTRA_DEVICE_INFO, serializableDevice)
+                putExtra(EXTRA_DEVICE_INFO, device)
             }
 
             setResult(RESULT_OK, intent)
             stopScan()
-            finish()
+            // 添加短暂延迟以确保扫描完全停止
+            Handler(Looper.getMainLooper()).postDelayed({
+                finish()
+            }, 200)  // 200ms延迟
         }
 
         rvDevices.layoutManager = LinearLayoutManager(this)
@@ -385,7 +376,7 @@ class ScanActivity : AppCompatActivity() {
     @SuppressLint("MissingPermission")
     private fun startRadarScan() {
         val radarManager = com.espressif.espblufi.RadarBleManager.getInstance(this)
-        // === [修改] 添加日志 ===
+
         Log.d(TAG, "Starting radar scan with filter: $currentFilterPrefix, type: $currentFilterType")
 
         radarManager.setScanCallback { deviceInfo ->

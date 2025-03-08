@@ -129,7 +129,6 @@ data class DeviceInfo(
     val deviceId: String,      // 设备ID - 用于显示的设备标识
     val macAddress: String,    // MAC地址 - 用于匹配历史配网记录
     val rssi: Int = -255,            // 信号强度,默认值 =-255即没有获取
-    val originalDevice: Any?   // 原始设备对象 - 用于配网
 ) : Serializable
 
 // B. A厂(雷达)专有数据结构

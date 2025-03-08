@@ -34,8 +34,8 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.widget.TextView
 import android.widget.ImageButton  // [新增] 解决ImageButton未定义的问题
-import android.app.Dialog  // 添加Dialog导入
-import android.widget.ProgressBar  // 添加ProgressBar导入
+
+
 import android.text.InputFilter
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -51,6 +51,7 @@ import com.common.Productor
 import com.common.DeviceHistory
 import com.common.ServerConfig
 import com.common.WifiConfig
+import com.common.BleDeviceManager
 
 // A厂 SDK
 import com.espressif.espblufi.RadarBleManager
@@ -140,8 +141,8 @@ class MainActivity : AppCompatActivity() {
 
         // 更新设备信息显示
         layoutDeviceInfo.visibility = View.VISIBLE
-        tvDeviceName.text = device.deviceName ?: ""
-        tvDeviceId.text = device.deviceId ?: ""
+        tvDeviceName.text = device.deviceName
+        tvDeviceId.text = device.deviceId
         tvDeviceRssi.text = device.rssi.toString() + "dBm"
     }
 
@@ -333,11 +334,15 @@ class MainActivity : AppCompatActivity() {
     // region配网操作
 
     private fun handlePairClick() {
-        // 首先验证设备选择
+        // 首先确保没有扫描在进行
+        RadarBleManager.getInstance(this).stopScan()
+        SleepaceBleManager.getInstance(this).stopScan()
+        // 验证设备选择
         if (selectedDevice == null) {
             showMessage(getString(R.string.toast_select_device_first))
             return
         }
+
 
         // 根据设备类型进行不同的验证和配网
         when (selectedDevice?.productorName) {
@@ -391,14 +396,18 @@ class MainActivity : AppCompatActivity() {
     private fun configureRadarWiFi() {
         val deviceAdd = selectedDevice?.macAddress ?: return
         val wifiConfig = getCurrentWifiConfig() ?: return
-        val ssidString = wifiConfig.ssid ?: return
-        val password = wifiConfig.password ?: ""
+        val ssidString = wifiConfig.ssid
+        val password = wifiConfig.password
         val radarManager = RadarBleManager.getInstance(this)
 
         // 显示进度对话框
-        showMessage("Connecting to device...", showProgress = true)
+        showMessage("Connecting to device...")
         tvStatusOutput.text = "Starting wifi configuration..."
-        tvStatusOutput.text = "${tvStatusOutput.text}\nDevice connected successfully"
+        //tvStatusOutput.text = "${tvStatusOutput.text}\nDevice connected successfully"
+        val currentText = tvStatusOutput.text.toString()
+        // 创建新的字符串并设置
+        tvStatusOutput.text = getString(R.string.status_text_with_connection, currentText)
+
 
         radarManager.configureWifi(deviceAdd, ssidString, password) { result ->
             // 处理结果
@@ -407,7 +416,10 @@ class MainActivity : AppCompatActivity() {
             if (success) {
                 configScan.saveWifiConfig(wifiConfig)
                 // 更新状态输出
-                tvStatusOutput.text = "${tvStatusOutput.text}\nWiFi configuration successful"
+                //tvStatusOutput.text = "${tvStatusOutput.text}\nWiFi configuration successful"
+                val deviceConnectedText = tvStatusOutput.text.toString()
+                tvStatusOutput.text = getString(R.string.status_text_with_device_connected, deviceConnectedText)
+
                 // 处理结果
                 handleConfigResult(true)
                 // 显示弹窗提示
@@ -420,7 +432,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }else{
                 // 更新状态输出
-                tvStatusOutput.text = "${tvStatusOutput.text}\nWiFi configuration failed"
+                //tvStatusOutput.text = "${tvStatusOutput.text}\nWiFi configuration failed"
+                val wifiConfigText = tvStatusOutput.text.toString()
+                tvStatusOutput.text = getString(R.string.status_text_with_wifi_success, wifiConfigText)
                 // 显示弹窗提示
                 showMessage("WiFi configuration failed")
             }
@@ -437,7 +451,7 @@ class MainActivity : AppCompatActivity() {
         val radarManager = RadarBleManager.getInstance(this)
 
         // 显示进度对话框
-        showMessage("Connecting to device...", showProgress = true)
+        showMessage("Connecting to device...")
         tvStatusOutput.text = "Starting server configuration..."
 
         // 配置服务器 - 移除嵌套调用
@@ -445,7 +459,13 @@ class MainActivity : AppCompatActivity() {
             // 处理结果
             val success = result["success"]?.toBoolean() ?: false
 
-            tvStatusOutput.text = "${tvStatusOutput.text}\nServer configuration ${if (success) "successful" else "failed"}!"
+            //tvStatusOutput.text = "${tvStatusOutput.text}\nServer configuration ${if (success) "successful" else "failed"}!"
+            val serverConfigText = tvStatusOutput.text.toString()
+            if (success) {
+                tvStatusOutput.text = getString(R.string.status_text_with_server_success, serverConfigText)
+            } else {
+                tvStatusOutput.text = getString(R.string.status_text_with_server_failed, serverConfigText)
+            }
 
             if (success) {
                 // 保存服务器配置
@@ -466,9 +486,11 @@ class MainActivity : AppCompatActivity() {
      */
     @SuppressLint("MissingPermission")
     private fun startSleepConfig() {
-        // 从原始设备中获取 BleDevice
-        val deviceInfo = selectedDevice
-        val bleDevice = deviceInfo?.originalDevice as? BleDevice ?: run {
+        // 获取设备信息
+        val deviceInfo = selectedDevice ?: return
+        // 从 BleDeviceManager 获取设备对象
+        val bleDevice = BleDeviceManager.getDeviceAs(deviceInfo.macAddress, com.sleepace.sdk.domain.BleDevice::class.java)
+        if (bleDevice == null) {
             showMessage(getString(R.string.toast_invalid_device))
             return
         }
@@ -494,7 +516,7 @@ class MainActivity : AppCompatActivity() {
         val sleepaceManager = SleepaceBleManager.getInstance(this)
 
         // 显示配置进度
-        showMessage("Configuring...", showProgress = true)
+        showMessage("Configuring...")
 
         try {
             sleepaceManager.startConfig(
@@ -529,7 +551,7 @@ class MainActivity : AppCompatActivity() {
                             showMessage("WiFi configuration timeout")
                         }
                         StatusCode.DISCONNECT -> {
-                            showMessage("Device disconnected, retrying...", showProgress = true)
+                            showMessage("Device disconnected, retrying...")
                             handleConfigResult(false)
                         }
                         StatusCode.PARAMETER_ERROR -> {
@@ -569,15 +591,15 @@ class MainActivity : AppCompatActivity() {
 
         when (selectedDevice?.productorName) {
             Productor.radarQL -> {
-                showMessage("Querying device status...", showProgress = true)
+                showMessage("Querying device status...")
                 queryRadarStatus()
             }
             Productor.sleepBoardHS -> {
-                showMessage("Querying device status...", showProgress = true)
+                showMessage("Querying device status...")
                 querySleepaceStatus()
             }
             Productor.espBle -> {
-                showMessage("Querying device status...", showProgress = true)
+                showMessage("Querying device status...")
                 queryRadarStatus()
             }
             else -> showMessage(getString(R.string.toast_unknown_device_type))
@@ -600,7 +622,7 @@ class MainActivity : AppCompatActivity() {
             append("  BleRSSI: ${deviceInfo.rssi}dBm\n")
         }
 
-        showMessage("Querying device status...", showProgress = true)
+        showMessage("Querying device status...")
 
         RadarBleManager.getInstance(this).queryDeviceStatus(deviceInfo) { status ->
             runOnUiThread {
@@ -695,7 +717,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun querySleepaceStatus() {
         val deviceInfo = selectedDevice ?: return
-        val bleDevice = deviceInfo.originalDevice as? BleDevice ?: run {
+        // 从 BleDeviceManager 获取设备对象
+        val bleDevice = BleDeviceManager.getDeviceAs(deviceInfo.macAddress, com.sleepace.sdk.domain.BleDevice::class.java) ?: run {
             showMessage(getString(R.string.toast_invalid_device))
             return
         }
@@ -711,7 +734,7 @@ class MainActivity : AppCompatActivity() {
             append("  Device ID: ${deviceInfo.deviceId}\n")
             append("  MAC: ${deviceInfo.macAddress}\n")
             append("  RSSI: ${deviceInfo.rssi}dBm\n")
-            append("  VersionCode: ${bleDevice.versionCode ?: "Unknown"}\n")
+            append("  VersionCode: ${bleDevice.versionCode}\n")
 
             append("\ndeviceHistory :\n")
             if (deviceHistory != null) {
@@ -833,17 +856,9 @@ class MainActivity : AppCompatActivity() {
     private fun handleConfigResult(success: Boolean) {
         if (success) {
             // 获取设备的 MAC 地址和名称
-            val deviceMac = when (val device = selectedDevice?.originalDevice) {
-                is ScanResult -> device.device.address
-                is BleDevice -> device.address
-                else -> selectedDevice?.macAddress ?: return
-            }
+            val deviceMac = selectedDevice?.macAddress ?: return
+            val deviceName = selectedDevice?.deviceName ?: ""
 
-            val deviceName = when (val device = selectedDevice?.originalDevice) {
-                is ScanResult -> device.device.name ?: ""
-                is BleDevice -> device.deviceName ?: ""
-                else -> selectedDevice?.deviceName ?: ""
-            }
 
             // 获取当前配置
             val serverConfig = getCurrentServerConfig()
@@ -870,28 +885,81 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private var mDialog: Dialog? = null
-
-    private fun showMessage(message: String, showProgress: Boolean = false) {
-        if(mDialog == null) {
-            mDialog = Dialog(this).apply {
-                setContentView(R.layout.dialog_message)
-                window?.setBackgroundDrawableResource(android.R.color.transparent)
+    private fun showMessage(message: String) {
+        runOnUiThread {
+            // 将消息追加到 tvStatusOutput 文本框中
+            val currentText = tvStatusOutput.text.toString()
+            val newText = if (currentText.isEmpty()) {
+                message
+            } else {
+                "$currentText\n$message"
             }
-        }
-
-        mDialog?.findViewById<TextView>(R.id.message)?.text = message
-        mDialog?.findViewById<ProgressBar>(R.id.progress)?.visibility =
-            if(showProgress) View.VISIBLE else View.GONE
-
-        if(!mDialog?.isShowing!!) {
-            mDialog?.show()
+            tvStatusOutput.text = newText
         }
     }
 
     private fun hideMessage() {
-        mDialog?.dismiss()
     }
+
     // endregion
+
+
+
+
+      fun testServerConfigLogic() {
+        val configStorage = ConfigStorage(this)
+
+        // 清除所有现有配置
+        configStorage.clearServerConfigs()
+        Log.d("ConfigTest", "已清除所有服务器配置")
+
+        // 验证清除是否成功
+        var configs = configStorage.getServerConfigs()
+        Log.d("ConfigTest", "清除后配置数量: ${configs.size}")
+
+        // 添加5个测试配置
+        for (i in 1..5) {
+            val config = ServerConfig(
+                serverAddress = "server$i.example.com",
+                port = 1000 + i,
+                protocol = "tcp",
+                timestamp = System.currentTimeMillis() + i
+            )
+            configStorage.saveServerConfig(config)
+
+            // 检查添加后的状态
+            configs = configStorage.getServerConfigs()
+            Log.d("ConfigTest", "添加#${i}后，配置数量: ${configs.size}")
+            Log.d("ConfigTest", "当前配置列表: ${configs.map { "${it.serverAddress}:${it.port}" }}")
+        }
+
+        // 添加第6个配置，验证是否删除最后一个
+        val extraConfig = ServerConfig(
+            serverAddress = "extraserver.example.com",
+            port = 2000,
+            protocol = "tcp",
+            timestamp = System.currentTimeMillis()
+        )
+        configStorage.saveServerConfig(extraConfig)
+
+        // 检查是否正确删除了最后一个
+        configs = configStorage.getServerConfigs()
+        Log.d("ConfigTest", "添加第6个后，配置数量: ${configs.size}")
+        Log.d("ConfigTest", "最终配置列表: ${configs.map { "${it.serverAddress}:${it.port}" }}")
+
+        // 验证第一个是否是刚添加的
+        if (configs.isNotEmpty() && configs[0].serverAddress == extraConfig.serverAddress) {
+            Log.d("ConfigTest", "测试通过：最新添加的配置在列表首位")
+        } else {
+            Log.e("ConfigTest", "测试失败：最新添加的配置不在列表首位")
+        }
+
+        // 验证列表大小
+        if (configs.size <= 5) {
+            Log.d("ConfigTest", "测试通过：配置列表不超过5个")
+        } else {
+            Log.e("ConfigTest", "测试失败：配置列表超过5个")
+        }
+    }
 
 }

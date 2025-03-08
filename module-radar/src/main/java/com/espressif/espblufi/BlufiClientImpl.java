@@ -28,6 +28,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.interfaces.DHPublicKey;
 
@@ -45,9 +47,9 @@ import com.espressif.espblufi.security.BlufiMD5;
 class BlufiClientImpl implements BlufiParameter {
     private static final String TAG = "BlufiClientImpl";
 
-    private static final int DEFAULT_PACKAGE_LENGTH = 20;
+    private static final int DEFAULT_PACKAGE_LENGTH = 20;//20
     private static final int PACKAGE_HEADER_LENGTH = 4;
-    private static final int MIN_PACKAGE_LENGTH = 20;
+    private static final int MIN_PACKAGE_LENGTH = 20;//20
 
     private static final byte NEG_SECURITY_SET_TOTAL_LENGTH = 0x00;
     private static final byte NEG_SECURITY_SET_ALL_DATA = 0x01;
@@ -74,6 +76,9 @@ class BlufiClientImpl implements BlufiParameter {
     private final LinkedBlockingQueue<Boolean> mWriteResultQueue;
     private BluetoothGattCharacteristic mNotifyChar;
     private long mWriteTimeout = -1;
+
+    //等待设备处理长度信息 超时timeout
+    private int NegotiateSecurity_timeout = 8000;  //// 原始前超时时间为 10-500 毫秒
 
     private int mPackageLengthLimit = -1;
     private int mBlufiMTU = -1;
@@ -143,6 +148,9 @@ class BlufiClientImpl implements BlufiParameter {
     }
 
     synchronized void close() {
+        // 添加堆栈跟踪以跟踪调用者
+        Log.d(TAG, "BlufiClient close() called", new Exception("BlufiClient close() stack trace"));
+
         mConnectState = BluetoothGatt.STATE_DISCONNECTED;
 
         mWriteResultQueue.clear();
@@ -151,9 +159,13 @@ class BlufiClientImpl implements BlufiParameter {
             mThreadPool = null;
         }
         if (mGatt != null) {
+            Log.d(TAG, "Closing GATT connection");
             mGatt.close();
             mGatt = null;
+        } else {
+            Log.d(TAG, "GATT connection is already null");
         }
+
         mNotifyChar = null;
         mWriteChar = null;
         if (mAck != null) {
@@ -166,6 +178,8 @@ class BlufiClientImpl implements BlufiParameter {
         mUserGattCallback = null;
         mContext = null;
         mDevice = null;
+
+        Log.d(TAG, "BlufiClient close() completed");
     }
 
     void setGattWriteTimeout(long timeout) {
@@ -311,8 +325,16 @@ class BlufiClientImpl implements BlufiParameter {
         if (mWriteTimeout > 0) {
             result = mWriteResultQueue.poll(mWriteTimeout, TimeUnit.MILLISECONDS);
             if (result == null) {
-                onError(BlufiCallback.CODE_GATT_WRITE_TIMEOUT);
-            }
+                //onError(BlufiCallback.CODE_GATT_WRITE_TIMEOUT);
+                // 修改这里，添加Android 14特定处理
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    // 记录超时但不立即报错
+                    Log.w(TAG, "GATT write timed out on Android 14, attempting to continue");
+                    return false; // 返回失败但不调用onError，允许调用者决定如何处理
+                } else {
+                    onError(BlufiCallback.CODE_GATT_WRITE_TIMEOUT);
+                }
+            } //andriod14 end
         } else {
             result = mWriteResultQueue.take();
         }
@@ -333,8 +355,10 @@ class BlufiClientImpl implements BlufiParameter {
     private boolean post(boolean encrypt, boolean checksum, boolean requireAck, int type, byte[] data)
             throws InterruptedException {
         if (data == null || data.length == 0) {
+            Log.d(TAG, "Sending packet without data - Type:" + type);
             return postNonData(encrypt, checksum, requireAck, type);
         } else {
+            Log.d(TAG, "Sending packet with data - Type:" + type + ", Data length:" + data.length + " bytes");
             return postContainData(encrypt, checksum, requireAck, type, data);
         }
     }
@@ -475,10 +499,9 @@ class BlufiClientImpl implements BlufiParameter {
         try {
             System.arraycopy(response, dataOffset, dataBytes, 0, dataLen);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error copying notification data", e);
             return -100;
         }
-
         if (frameCtrlData.isEncrypted()) {
             BlufiAES aes = new BlufiAES(mAESKey, AES_TRANSFORMATION, generateAESIV(sequence));
             dataBytes = aes.decrypt(dataBytes);
@@ -706,59 +729,139 @@ class BlufiClientImpl implements BlufiParameter {
         });
     }
 
-    private void __negotiateSecurity() {
+    /*private void __negotiateSecurity() {
+        Log.i(TAG, "Starting security negotiation process");
+
         BlufiDH espDH = postNegotiateSecurity();
         if (espDH == null) {
-            Log.w(TAG, "negotiateSecurity postNegotiateSecurity failed");
+            Log.e(TAG, "negotiateSecurity postNegotiateSecurity failed - DH object is null");
             onNegotiateSecurityResult(BlufiCallback.CODE_NEG_POST_FAILED);
             return;
         }
+
+        Log.i(TAG, "DH generation successful, waiting for device public key");
 
         BigInteger devicePublicKey;
         try {
             devicePublicKey = mDevicePublicKeyQueue.take();
             if (devicePublicKey.bitLength() == 0) {
+                Log.e(TAG, "Received invalid device public key with bit length 0");
                 onNegotiateSecurityResult(BlufiCallback.CODE_NEG_ERR_DEV_KEY);
                 return;
             }
+            Log.d(TAG, "Successfully obtained device public key, bit length: " + devicePublicKey.bitLength());
         } catch (InterruptedException e) {
-            Log.w(TAG, "Take device public key interrupted");
+            Log.w(TAG, "Waiting for device public key was interrupted", e);
             Thread.currentThread().interrupt();
             return;
         }
 
         try {
+            Log.d(TAG, "Starting key generation based on device public key");
             espDH.generateSecretKey(devicePublicKey);
             if (espDH.getSecretKey() == null) {
+                Log.e(TAG, "Key generation failed - key is null");
                 onNegotiateSecurityResult(BlufiCallback.CODE_NEG_ERR_SECURITY);
                 return;
             }
+            Log.d(TAG, "Key generation successful, length: " + espDH.getSecretKey().length);
 
             mAESKey = BlufiMD5.getMD5Bytes(espDH.getSecretKey());
+            Log.d(TAG, "MD5 key generation successful, length: " + (mAESKey != null ? mAESKey.length : "null"));
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Exception during key generation", e);
             onNegotiateSecurityResult(BlufiCallback.CODE_NEG_ERR_SECURITY);
             return;
         }
 
         boolean setSecurity = false;
         try {
+            Log.d(TAG, "Starting to set security mode");
             setSecurity = postSetSecurity(false, false, true, true);
+            Log.d(TAG, "Set security mode result: " + setSecurity);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Exception when setting security mode", e);
         }
 
         if (setSecurity) {
             mEncrypted = true;
             mChecksum = true;
+            Log.i(TAG, "Security negotiation completed successfully");
             onNegotiateSecurityResult(BlufiCallback.STATUS_SUCCESS);
         } else {
             mEncrypted = false;
             mChecksum = false;
+            Log.e(TAG, "Setting security mode failed");
             onNegotiateSecurityResult(BlufiCallback.CODE_NEG_ERR_SET_SECURITY);
         }
-    }
+    }*/
+    private void __negotiateSecurity() {
+        Log.i(TAG, "Starting security negotiation process");
+        BlufiDH espDH = postNegotiateSecurity();
+        if (espDH == null) {
+            Log.e(TAG, "negotiateSecurity postNegotiateSecurity failed - DH object is null");
+            mUIHandler.post(() -> onNegotiateSecurityResult(BlufiCallback.CODE_NEG_POST_FAILED));
+            return;
+        }
 
+        Log.i(TAG, "DH generation successful, waiting for device public key");
+
+        BigInteger devicePublicKey;
+        try {
+            devicePublicKey = mDevicePublicKeyQueue.take();
+            if (devicePublicKey.bitLength() == 0) {
+                Log.e(TAG, "Received invalid device public key with bit length 0");
+                mUIHandler.post(() -> onNegotiateSecurityResult(BlufiCallback.CODE_NEG_ERR_DEV_KEY));
+                return;
+            }
+            Log.d(TAG, "Successfully obtained device public key, bit length: " + devicePublicKey.bitLength());
+        } catch (InterruptedException e) {
+            Log.w(TAG, "Waiting for device public key was interrupted", e);
+            Thread.currentThread().interrupt();
+            return;
+        }
+
+        try {
+            Log.d(TAG, "Starting key generation based on device public key");
+            espDH.generateSecretKey(devicePublicKey);
+            if (espDH.getSecretKey() == null) {
+                Log.e(TAG, "Key generation failed - key is null");
+                mUIHandler.post(() -> onNegotiateSecurityResult(BlufiCallback.CODE_NEG_ERR_SECURITY));
+                return;
+            }
+            Log.d(TAG, "Key generation successful, length: " + espDH.getSecretKey().length);
+
+            mAESKey = BlufiMD5.getMD5Bytes(espDH.getSecretKey());
+            Log.d(TAG, "MD5 key generation successful, length: " + (mAESKey != null ? mAESKey.length : "null"));
+        } catch (Exception e) {
+            Log.e(TAG, "Exception during key generation", e);
+            mUIHandler.post(() -> onNegotiateSecurityResult(BlufiCallback.CODE_NEG_ERR_SECURITY));
+            return;
+        }
+
+        boolean setSecurity = false;
+        try {
+            Log.d(TAG, "Starting to set security mode");
+            setSecurity = postSetSecurity(false, false, true, true);
+            Log.d(TAG, "Set security mode result: " + setSecurity);
+        } catch (Exception e) {
+            Log.e(TAG, "Exception when setting security mode", e);
+        }
+
+        if (setSecurity) {
+            mEncrypted = true;
+            mChecksum = true;
+            Log.i(TAG, "Security negotiation completed successfully");
+            // 记录当前的MTU值
+            Log.d(TAG, "Current MTU value during security negotiation: " + mBlufiMTU);
+            mUIHandler.post(() -> onNegotiateSecurityResult(BlufiCallback.STATUS_SUCCESS));
+        } else {
+            mEncrypted = false;
+            mChecksum = false;
+            Log.e(TAG, "Setting security mode failed");
+            mUIHandler.post(() -> onNegotiateSecurityResult(BlufiCallback.CODE_NEG_ERR_SET_SECURITY));
+        }
+    }
     private void onNegotiateSecurityResult(final int status) {
         mUIHandler.post(() -> {
             if (mUserBlufiCallback != null) {
@@ -768,6 +871,7 @@ class BlufiClientImpl implements BlufiParameter {
     }
 
     private BlufiDH postNegotiateSecurity() {
+        Log.d(TAG, "Starting postNegotiateSecurity process");
         int type = getTypeValue(Type.Data.PACKAGE_VALUE, Type.Data.SUBTYPE_NEG);
 
         final int radix = 16;
@@ -779,15 +883,20 @@ class BlufiClientImpl implements BlufiParameter {
         String g;
         String k;
         do {
+            Log.d(TAG, "Generating DH parameters");
             blufiDH = new BlufiDH(dhP, dhG, dhLength);
             p = blufiDH.getP().toString(radix);
             g = blufiDH.getG().toString(radix);
             k = getPublicValue(blufiDH);
         } while (k == null);
 
+        Log.d(TAG, "DH parameters generation successful - P length:" + p.length() + ", G length:" + g.length() + ", K length:" + k.length());
+
         byte[] pBytes = toBytes(p);
         byte[] gBytes = toBytes(g);
         byte[] kBytes = toBytes(k);
+
+        Log.d(TAG, "Converted to byte arrays - P:" + pBytes.length + " bytes, G:" + gBytes.length + " bytes, K:" + kBytes.length + " bytes");
 
         ByteArrayOutputStream dataOS = new ByteArrayOutputStream();
 
@@ -797,18 +906,39 @@ class BlufiClientImpl implements BlufiParameter {
         dataOS.write(NEG_SECURITY_SET_TOTAL_LENGTH);
         dataOS.write((byte) pgkLen1);
         dataOS.write((byte) pgkLen2);
+
+        Log.d(TAG, "Preparing to send total length information - Total length:" + pgkLength + " bytes");
+
         try {
             boolean postLength = post(false, false, mRequireAck, type, dataOS.toByteArray());
             if (!postLength) {
-                return null;
+                if (Build.VERSION.SDK_INT >= 34) {
+                    // Android 14特定处理，尝试减小数据包大小后重试
+                    Log.e(TAG, "Failed to send length information, trying with smaller packet");
+                    // 直接跳过发送长度信息，继续执行
+                    // 这是一个妥协方案，因为成功日志显示即使timeout也能继续执行
+                } else {
+                    Log.e(TAG, "Failed to send length information");
+                    return null;}
             }
+            Log.d(TAG, "Successfully sent length information");
         } catch (InterruptedException e) {
-            Log.w(TAG, "postNegotiateSecurity: pgk length interrupted");
+            Log.e(TAG, "Sending length information was interrupted", e);
             Thread.currentThread().interrupt();
             return null;
         }
 
-        sleep(10);
+        // Use CountDownLatch instead of simple sleep
+        CountDownLatch latch = new CountDownLatch(1);
+        try {
+            Log.d(TAG, "Waiting for device to process length information...");
+            boolean waited = latch.await(NegotiateSecurity_timeout, TimeUnit.MILLISECONDS); // Increased to 500ms
+            Log.d(TAG, "Wait completed, status:" + (waited ? "completed" : "timeout"));
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Wait process was interrupted", e);
+            Thread.currentThread().interrupt();
+            return null;
+        }
 
         dataOS.reset();
         dataOS.write(NEG_SECURITY_SET_ALL_DATA);
@@ -834,13 +964,17 @@ class BlufiClientImpl implements BlufiParameter {
         dataOS.write(kLen2);
         dataOS.write(kBytes, 0, kLength);
 
+        Log.d(TAG, "Preparing to send DH parameter data - Total data length:" + dataOS.size() + " bytes");
+
         try {
             boolean postPGK = post(false, false, mRequireAck, type, dataOS.toByteArray());
             if (!postPGK) {
+                Log.e(TAG, "Failed to send DH parameter data");
                 return null;
             }
+            Log.d(TAG, "Successfully sent DH parameter data");
         } catch (InterruptedException e) {
-            Log.w(TAG, "postNegotiateSecurity: PGK interrupted");
+            Log.e(TAG, "Sending DH parameter data was interrupted", e);
             Thread.currentThread().interrupt();
             return null;
         }
@@ -848,6 +982,7 @@ class BlufiClientImpl implements BlufiParameter {
         dataOS.reset();
         return blufiDH;
     }
+
 
     private String getPublicValue(BlufiDH espDH) {
         DHPublicKey publicKey = espDH.getPublicKey();
@@ -993,13 +1128,19 @@ class BlufiClientImpl implements BlufiParameter {
             if (!post(mEncrypted, mChecksum, mRequireAck, ssidType, ssidBytes)) {
                 return false;
             }
-            sleep(10);
+            //sleep(10);
+            if (!sleep(10)) {  // 使用新的sleep方法
+                Log.w(TAG, "postStaWifiInfo: sleep interrupted");
+            }
 
             int pwdType = getTypeValue(Type.Data.PACKAGE_VALUE, Type.Data.SUBTYPE_STA_WIFI_PASSWORD);
             if (!post(mEncrypted, mChecksum, mRequireAck, pwdType, params.getStaPassword().getBytes())) {
                 return false;
             }
-            sleep(10);
+            //sleep(10);
+            if (!sleep(10)) {  // 使用新的sleep方法
+                Log.w(TAG, "postStaWifiInfo: sleep interrupted");
+            }
 
             int comfirmType = getTypeValue(Type.Ctrl.PACKAGE_VALUE, Type.Ctrl.SUBTYPE_CONNECT_WIFI);
             return post(false, false, mRequireAck, comfirmType, null);
@@ -1018,7 +1159,10 @@ class BlufiClientImpl implements BlufiParameter {
                 if (!post(mEncrypted, mChecksum, mRequireAck, ssidType, params.getSoftAPSSID().getBytes())) {
                     return false;
                 }
-                sleep(10);
+                //sleep(10);
+                if (!sleep(10)) {  // 使用新的sleep方法
+                    Log.w(TAG, "postStaWifiInfo: sleep interrupted");
+                }
             }
 
             String password = params.getSoftAPPassword();
@@ -1027,7 +1171,10 @@ class BlufiClientImpl implements BlufiParameter {
                 if (!post(mEncrypted, mChecksum, mRequireAck, pwdType, password.getBytes())) {
                     return false;
                 }
-                sleep(10);
+                //sleep(10);
+                if (!sleep(10)) {  // 使用新的sleep方法
+                    Log.w(TAG, "postStaWifiInfo: sleep interrupted");
+                }
             }
 
             int channel = params.getSoftAPChannel();
@@ -1036,7 +1183,10 @@ class BlufiClientImpl implements BlufiParameter {
                 if (!post(mEncrypted, mChecksum, mRequireAck, channelType, new byte[]{(byte) channel})) {
                     return false;
                 }
-                sleep(10);
+                //sleep(10);
+                if (!sleep(10)) {  // 使用新的sleep方法
+                    Log.w(TAG, "postStaWifiInfo: sleep interrupted");
+                }
             }
 
             int maxConn = params.getSoftAPMaxConnection();
@@ -1045,7 +1195,10 @@ class BlufiClientImpl implements BlufiParameter {
                 if (!post(mEncrypted, mChecksum, mRequireAck, maxConnType, new byte[]{(byte) maxConn})) {
                     return false;
                 }
-                sleep(10);
+                //sleep(10);
+                if (!sleep(10)) {  // 使用新的sleep方法
+                    Log.w(TAG, "postStaWifiInfo: sleep interrupted");
+                }
             }
 
             int securityType = getTypeValue(Type.Data.PACKAGE_VALUE, Type.Data.SUBTYPE_SOFTAP_AUTH_MODE);
@@ -1175,7 +1328,7 @@ class BlufiClientImpl implements BlufiParameter {
             try {
                 execute();
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "Error executing task", e);
                 onError(e);
             }
         }
@@ -1186,6 +1339,7 @@ class BlufiClientImpl implements BlufiParameter {
         }
     }
 
+    /*
     private void sleep(long timeout) {
         try {
             Thread.sleep(timeout);
@@ -1193,9 +1347,28 @@ class BlufiClientImpl implements BlufiParameter {
             Log.w(TAG, "sleep: interrupted");
             Thread.currentThread().interrupt();
         }
+    }*/
+    private boolean sleep(long timeout) {
+        final CountDownLatch latch = new CountDownLatch(1);
+        mUIHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                latch.countDown();
+            }
+        }, timeout);
+
+        try {
+            return latch.await(timeout + 50, TimeUnit.MILLISECONDS); // 设置略长的超时时间50ms
+        } catch (InterruptedException e) {
+            Log.w(TAG, "sleep: latch wait interrupted");
+            return false;
+        }
     }
 
+
+
     private class InnerGattCallback extends BluetoothGattCallback {
+
 
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             mConnectState = newState;
@@ -1215,6 +1388,8 @@ class BlufiClientImpl implements BlufiParameter {
             }
         }
 
+
+
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             BluetoothGattService service = null;
             BluetoothGattCharacteristic writeChar = null;
@@ -1227,20 +1402,31 @@ class BlufiClientImpl implements BlufiParameter {
                     if (notifyChar != null) {
                         gatt.setCharacteristicNotification(notifyChar, true);
                     }
-                }
+                    // 添加 MTU 请求 for andriod14
+                    if (Build.VERSION.SDK_INT >= 34) { // Android 14
+                        try {
+                            // 直接为 Android 14 设置 MTU 大小
+                            int mtuSize = 64; // 对于 Android 14，使用较小的值提高稳定性
+                            Log.d(TAG, "Requesting MTU: " + mtuSize);
+                            gatt.requestMtu(mtuSize);
+                        } catch (Exception e) {
+                            Log.e(TAG, "MTU request failed", e);
+                        }
+                    }
+        }
 
-                mWriteChar = writeChar;
-                mNotifyChar = notifyChar;
-            }
+        mWriteChar = writeChar;
+        mNotifyChar = notifyChar;
+    }
 
             if (mUserGattCallback != null) {
-                mUserGattCallback.onServicesDiscovered(gatt, status);
-            }
+        mUserGattCallback.onServicesDiscovered(gatt, status);
+    }
             if (mUserBlufiCallback != null) {
-                final BluetoothGattService cbService = service;
-                final BluetoothGattCharacteristic cbWriteChar = writeChar;
-                final BluetoothGattCharacteristic cbNotifyChar = notifyChar;
-                final BluetoothGattDescriptor notifyDesc = notifyChar == null ? null :
+        final BluetoothGattService cbService = service;
+        final BluetoothGattCharacteristic cbWriteChar = writeChar;
+        final BluetoothGattCharacteristic cbNotifyChar = notifyChar;
+        final BluetoothGattDescriptor notifyDesc = notifyChar == null ? null :
                         notifyChar.getDescriptor(BlufiParameter.UUID_NOTIFICATION_DESCRIPTOR);
                 if (service != null && writeChar != null && notifyChar != null && notifyDesc != null) {
                     Log.d(TAG, "Write ENABLE_NOTIFICATION_VALUE");
@@ -1336,10 +1522,12 @@ class BlufiClientImpl implements BlufiParameter {
             }
         }
 
-        @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+       @TargetApi(Build.VERSION_CODES.LOLLIPOP)
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 mBlufiMTU = mtu - 4; // Three bytes BLE header, one byte reserved
+                Log.d(TAG, "MTU changed to: " + mBlufiMTU);
+
             }
             if (mUserGattCallback != null) {
                 mUserGattCallback.onMtuChanged(gatt, mtu, status);

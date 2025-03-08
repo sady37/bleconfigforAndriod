@@ -33,13 +33,12 @@ import com.common.DeviceHistory
 import com.common.ServerConfig
 import com.common.WifiConfig
 import com.common.DefaultConfig
+import android.os.Build
 
 import com.espressif.espblufi.constants.BlufiConstants
 import com.espressif.espblufi.params.BlufiConfigureParams
 import com.espressif.espblufi.response.BlufiStatusResponse
 import com.espressif.espblufi.response.BlufiVersionResponse
-
-
 
 
 /**
@@ -55,6 +54,21 @@ class RadarBleManager private constructor(private val context: Context) {
     companion object {
         private const val TAG = "RadarBleManager"
         private const val SCAN_TIMEOUT = 10000L  // 扫描超时时间 10秒
+        private const val QUERY_TIMEOUT = 25000L  // 查询超时时间 25秒
+        private const val GATT_WRITE_TIMEOUT = 10000L //连接超时间10秒
+        private const val CONFIGSERVER_TIMEOUT=25000L
+        private const val COMMAND_DELAYTIME=1000L
+        private const val DEVICERESTART_DELAYTIME=5000L
+
+        // 错误处理相关常量
+        private const val MAX_RETRY_COUNT = 3
+        private const val RECONNECT_DELAY = 1000L  // 1秒
+        private const val RETRY_DELAY = 500L       // 500毫秒
+        private const val MAX_ERROR_THRESHOLD = 5  // 最大错误阈值
+
+        // 添加 keepAlive 相关常量
+        private const val KEEP_ALIVE_INTERVAL = 3000L // 3秒发送一次保活信号
+
 
         @Volatile
         private var instance: RadarBleManager? = null
@@ -67,6 +81,69 @@ class RadarBleManager private constructor(private val context: Context) {
             }
         }
     }
+
+    // 添加 keepAlive 相关成员变量
+    private var isKeepAliveRunning = false
+    private lateinit var keepAliveRunnable: Runnable
+
+    // Then add this initialization in the init block or constructor:
+    init {
+        keepAliveRunnable = Runnable {
+            if (isConnecting && blufiClient != null) {
+                Log.d(TAG, "Sending keep-alive signal")
+                try {
+                    // 发送一个轻量级命令来保持连接活跃
+                    blufiClient?.postCustomData("65:".toByteArray())
+                } catch (e: Exception) {
+                    Log.e(TAG, "Keep-alive error", e)
+                }
+
+                // 安排下一次保活信号
+                if (isKeepAliveRunning) {
+                    mainHandler.postDelayed(keepAliveRunnable, KEEP_ALIVE_INTERVAL)
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 启动 keepAlive 机制
+     */
+    private fun startKeepAlive() {
+        if (!isKeepAliveRunning) {
+            Log.d(TAG, "Starting keep-alive mechanism")
+            isKeepAliveRunning = true
+            mainHandler.postDelayed(keepAliveRunnable, KEEP_ALIVE_INTERVAL)
+        }
+    }
+
+    /**
+     * 停止 keepAlive 机制
+     */
+    private fun stopKeepAlive() {
+        if (isKeepAliveRunning) {
+            Log.d(TAG, "Stopping keep-alive mechanism")
+            isKeepAliveRunning = false
+            mainHandler.removeCallbacks(keepAliveRunnable)
+        }
+    }
+
+
+    // 错误类型枚举
+    enum class ErrorType {
+        CONNECTION_TIMEOUT,
+        SECURITY_ERROR,
+        DATA_ERROR,
+        UNKNOWN
+    }
+
+    // 添加错误处理相关变量
+    private var notifyErrorCallback: ((ErrorType, String) -> Unit)? = null
+    private var errorCount = 0
+    private var isRetryEnabled = true
+    private var isConnecting = false
+    private var currentDeviceMac: String? = null  // 存储当前连接的设备MAC地址
 
     private val bluetoothAdapter: BluetoothAdapter? =
         (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
@@ -90,6 +167,27 @@ class RadarBleManager private constructor(private val context: Context) {
 
     //region 基础函数及扩展函数
     // -------------- 2. 基础函数 --------------
+    /**
+     * 设置错误回调
+     */
+    fun setErrorCallback(callback: (ErrorType, String) -> Unit) {
+        notifyErrorCallback = callback
+    }
+
+    /**
+     * 启用/禁用自动重试
+     */
+    fun enableRetry(enable: Boolean) {
+        isRetryEnabled = enable
+    }
+
+    /**
+     * 重置错误计数
+     */
+    fun resetErrorCount() {
+        errorCount = 0
+    }
+
 
     /**
      * 设置扫描回调
@@ -106,14 +204,19 @@ class RadarBleManager private constructor(private val context: Context) {
         val device = bluetoothAdapter?.getRemoteDevice(deviceMacAddress)
 
         if (device != null) {
+            Log.d(TAG, "Device found, starting connection process")
+            isConnecting = true
+            currentDeviceMac = deviceMacAddress
             connect(device)
         } else {
             Log.e(TAG, "Failed to get device with MAC: $deviceMacAddress")
+            notifyErrorCallback?.invoke(ErrorType.CONNECTION_TIMEOUT, "Invalid device address")
             // 处理错误
         }
     }
 
     private fun connect(device: BluetoothDevice) {
+        Log.d(TAG, "Starting connection to device: ${device.address}")
         disconnect()
 
         BlufiClient(context, device).also { client ->
@@ -123,13 +226,45 @@ class RadarBleManager private constructor(private val context: Context) {
             client.setGattCallback(createGattCallback())
             client.setBlufiCallback(createBlufiCallback())
 
-            // 设置超时
-            client.setGattWriteTimeout(BlufiConstants.GATT_WRITE_TIMEOUT)
+            // 设置超时 BlufiConstants.GATT_WRITE_TIMEOUT=5000L->10000L
+            //client.setGattWriteTimeout(BlufiConstants.GATT_WRITE_TIMEOUT)
+            client.setGattWriteTimeout(GATT_WRITE_TIMEOUT)
+
+            // 重置MTU和错误计数
+            errorCount = 0
 
             // 开始连接
+            Log.d(TAG, "Initiating GATT connection to device: ${device.address}")
             client.connect()
         }
     }
+
+    /**
+     * 重新连接设备
+     */
+    private fun reconnect() {
+        if (isConnecting) return
+
+        val deviceMac = currentDeviceMac ?: return
+        Log.d(TAG, "Attempting reconnection to $deviceMac")
+
+        disconnect()
+        // 短暂延迟确保断开完全处理
+        mainHandler.postDelayed({
+            connect(deviceMac)
+        }, 200)
+    }
+
+    /**
+     * 重置安全状态
+     */
+    private fun resetSecurityState() {
+        // 重置与安全协商相关的状态
+        Log.d(TAG, "Resetting security state")
+        // 执行任何必要的状态重置
+    }
+
+
 
     /**
      * 获取设备版本
@@ -173,7 +308,17 @@ class RadarBleManager private constructor(private val context: Context) {
      * 断开连接
      */
     fun disconnect() {
-        blufiClient?.close()
+        isConnecting = false
+
+        // 移除所有挂起的回调以防止内存泄漏
+        mainHandler.removeCallbacksAndMessages(null)
+
+        // 直接同步执行关闭操作，不使用延迟,否则在connect开始调用，会中断Rigster
+        try {
+            blufiClient?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing BluetoothGatt", e)
+        }
         blufiClient = null
         configureCallback = null
     }
@@ -185,6 +330,7 @@ class RadarBleManager private constructor(private val context: Context) {
         stopScan()
         disconnect()
         mainHandler.removeCallbacksAndMessages(null)
+        currentDeviceMac = null
         instance = null
     }
 
@@ -195,17 +341,76 @@ class RadarBleManager private constructor(private val context: Context) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     when (newState) {
                         BluetoothProfile.STATE_CONNECTED -> {
-                            gatt.discoverServices()
+                            Log.d(TAG, "Connected to device: ${gatt.device.address}")
+                            // 连接成功后立即启动保活
+                            startKeepAlive()
+                            // 请求高优先级连接（对所有版本）
+                            gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                            // 增加延迟时间，确保连接参数设置完成
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                if (isConnecting) { // 确保仍然在连接过程中
+                                    gatt.discoverServices()
+                                }
+                            }, 150) // 稍微增加延迟
                         }
-
                         BluetoothProfile.STATE_DISCONNECTED -> {
+                            Log.d(TAG, "Disconnected from device: ${gatt.device.address}")
+                            // 连接断开时停止保活
+                            stopKeepAlive()
                             disconnect()
                         }
                     }
+                } else if (status == 8 && newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    // 状态码 8 通常表示连接超时或远程设备断开
+                    Log.e(TAG, "Connection failed with status 8 (timeout), attempting reconnect")
+
+                    // 如果在连接过程中且未超过最大重试次数
+                    if (isConnecting && errorCount < MAX_RETRY_COUNT) {
+                        errorCount++
+                        // 停止现有保活
+                        stopKeepAlive()
+                        // 重新连接设备
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            val device = bluetoothAdapter?.getRemoteDevice(currentDeviceMac)
+                            if (device != null) {
+                                Log.d(TAG, "Reconnecting after status 8 disconnect... Attempt: $errorCount")
+                                disconnect()
+                                connect(device)
+                            }
+                        }, RECONNECT_DELAY)
+                    } else {
+                        Log.e(TAG, "Connection failed with status 8, max retries exceeded or not in connecting state")
+                        stopKeepAlive()
+                        disconnect()
+                    }
                 } else {
+                    // 其他连接失败情况
+                    Log.e(TAG, "Connection failed with status: $status")
+                    stopKeepAlive()
                     disconnect()
                 }
             }
+
+            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.d(TAG, "Services discovered successfully")
+                    // 在服务发现成功后也启动保活
+                    startKeepAlive()
+                } else {
+                    Log.e(TAG, "Service discovery failed with status: $status")
+                }
+            }
+
+            // 添加 MTU 变化回调
+            override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.d(TAG, "MTU changed to: $mtu")
+                } else {
+                    Log.e(TAG, "MTU change failed with status: $status")
+                }
+            }
+
+            // 删除有问题的 onConnectionUpdated 方法
         }
     }
 
@@ -218,15 +423,22 @@ class RadarBleManager private constructor(private val context: Context) {
                 writeChar: BluetoothGattCharacteristic?,
                 notifyChar: BluetoothGattCharacteristic?
             ) {
+                Log.d(TAG, "onGattPrepared: service=${service != null}, write=${writeChar != null}, notify=${notifyChar != null}")
                 if (service == null || writeChar == null || notifyChar == null) {
                     Log.e(TAG, "Discover service failed")
                     disconnect()
                     return
                 }
+                Log.d(TAG, "GATT services prepared successfully")
             }
 
             override fun onNegotiateSecurityResult(client: BlufiClient, status: Int) {
                 Log.d(TAG, "Security negotiation result: $status")
+                if (status == STATUS_SUCCESS) {
+                    Log.d(TAG, "Security negotiation successful")
+                } else {
+                    Log.e(TAG, "Security negotiation failed with status: $status")
+                }
             }
 
             override fun onPostConfigureParams(client: BlufiClient, status: Int) {
@@ -257,16 +469,60 @@ class RadarBleManager private constructor(private val context: Context) {
 
             override fun onError(client: BlufiClient, errCode: Int) {
                 Log.e(TAG, "BluFi error: $errCode")
+
+                // 记录错误次数
+                errorCount++
+
                 when (errCode) {
                     CODE_GATT_WRITE_TIMEOUT -> {
+                        Log.e(TAG, "GATT write operation timed out with current MTU}")
                         disconnect()
+                        notifyErrorCallback?.invoke(ErrorType.CONNECTION_TIMEOUT,
+                            "Connection timed out after $errorCount attempts")
+                    }
+
+                    CODE_NEG_ERR_DEV_KEY -> {
+                        Log.e(TAG, "Security negotiation failed: invalid device key")
+                        resetSecurityState()
+                        disconnect()
+                        notifyErrorCallback?.invoke(ErrorType.SECURITY_ERROR,
+                            "Failed to negotiate security")
+                    }
+
+                    CODE_INVALID_NOTIFICATION, CODE_NEG_ERR_SECURITY -> {
+                        Log.e(TAG, "Invalid data received or security error")
+                        disconnect()
+                        notifyErrorCallback?.invoke(ErrorType.DATA_ERROR,
+                            "Communication error occurred")
+                    }
+
+                    else -> {
+                        Log.e(TAG, "Unknown error: $errCode")
+                        if (errorCount >= MAX_ERROR_THRESHOLD) {
+                            disconnect()
+                            notifyErrorCallback?.invoke(ErrorType.UNKNOWN,
+                                "Multiple errors occurred: $errCode")
+                        }
                     }
                 }
             }
         }
     }
 
+    // 添加带间隔参数的保活启动方法
+    private fun startKeepAliveWithInterval(interval: Long) {
+        if (isKeepAliveRunning) {
+            stopKeepAlive()
+        }
+        Log.d(TAG, "Starting keep-alive mechanism with interval: $interval ms")
+        isKeepAliveRunning = true
+        mainHandler.postDelayed(keepAliveRunnable, interval)
+    }
+
     //endregion
+
+    //region  扫描BleResult
+    // -------------- 3. 扫描相关函数 --------------
 
     //region  扫描BleResult
     // -------------- 3. 扫描相关函数 --------------
@@ -359,12 +615,11 @@ class RadarBleManager private constructor(private val context: Context) {
             // 转换为 DeviceInfo
             val deviceInfo = DeviceInfo(
                 productorName = Productor.radarQL,
-                deviceName = result.device.name ?: "",
-                deviceId = result.device.name ?: "",
+                deviceName = result.device.name ?: "Unknown",
+                deviceId = result.device.name ?: result.device.address,
                 macAddress = result.device.address,
                 rssi = result.rssi,
-                originalDevice = result
-            )
+           )
 
             mainHandler.post {
                 scanCallback?.invoke(deviceInfo)
@@ -408,7 +663,7 @@ class RadarBleManager private constructor(private val context: Context) {
 
         // 查询超时
         val queryTimeoutRunnable = Runnable {
-            Log.e(TAG, "Query timeout after 15 seconds")
+            Log.e(TAG, "Query timeout after  ${QUERY_TIMEOUT/1000} seconds")
             if (!isQueryComplete) {
                 isQueryComplete = true
                 statusMap["error"] = "Query timeout"
@@ -447,7 +702,7 @@ class RadarBleManager private constructor(private val context: Context) {
                 }
 
                 // 设置超时
-                mainHandler.postDelayed(queryTimeoutRunnable, 15000)
+                mainHandler.postDelayed(queryTimeoutRunnable, QUERY_TIMEOUT)
 
                 // 先进行安全协商
                 Log.d(TAG, "Starting security negotiation")
@@ -482,27 +737,9 @@ class RadarBleManager private constructor(private val context: Context) {
                 Log.d(TAG, "Status code: $status")
 
                 if (status == STATUS_SUCCESS) {
-                    /*
-                    Log.d(TAG, "----- Basic Information -----")
-                    Log.d(TAG, "Operation mode: ${response.opMode}")
-                    Log.d(TAG, "STA connection status: ${response.staConnectionStatus}")
-                    Log.d(TAG, "SoftAP connection count: ${response.softAPConnectionCount}")
-
-                    Log.d(TAG, "----- STA Information -----")
-                    Log.d(TAG, "STA SSID: ${response.staSSID}")
-                    Log.d(TAG, "STA BSSID: ${response.staBSSID}")
-                    Log.d(TAG, "STA Password: ${response.staPassword}")
-
-                    Log.d(TAG, "----- SoftAP Information -----")
-                    Log.d(TAG, "SoftAP SSID: ${response.softAPSSID}")
-                    Log.d(TAG, "SoftAP Security: ${response.softAPSecurity}")
-                    Log.d(TAG, "SoftAP Password: ${response.softAPPassword}")
-                    Log.d(TAG, "SoftAP Channel: ${response.softAPChannel}")
-                    Log.d(TAG, "SoftAP Max Connection Count: ${response.softAPMaxConnectionCount}")
-                    */
                     // 尝试通过反射获取所有字段
                     try {
-                        Log.d(TAG, "----- All Fields via Reflection -----")
+                        Log.d(TAG, "----- Extracting fields from status response -----")
                         val fields = response.javaClass.declaredFields
                         for (field in fields) {
                             field.isAccessible = true
@@ -516,10 +753,6 @@ class RadarBleManager private constructor(private val context: Context) {
                     } catch (e: Exception) {
                         Log.e(TAG, "Error accessing fields via reflection: ${e.message}")
                     }
-
-                    // 记录完整对象的文本表示
-                   // Log.d(TAG, "----- Complete Object toString -----")
-                    //Log.d(TAG, response.toString())
 
                     // 使用 statusMap 记录重要信息
                     hasWifiStatus = true
@@ -893,7 +1126,7 @@ class RadarBleManager private constructor(private val context: Context) {
                 }
 
                 // 设置超时
-                mainHandler.postDelayed(configTimeoutRunnable, 25000)
+                mainHandler.postDelayed(configTimeoutRunnable, CONFIGSERVER_TIMEOUT)
 
                 // 开始安全协商
                 client.negotiateSecurity()
@@ -936,9 +1169,9 @@ class RadarBleManager private constructor(private val context: Context) {
                                 // 发送必要的额外命令
                                 sendExtraCommands(client)
                             }
-                        }, 2000)
+                        }, COMMAND_DELAYTIME)
                     }
-                }, 2000)
+                }, COMMAND_DELAYTIME)
             }
 
             private fun sendExtraCommands(client: BlufiClient) {
@@ -959,9 +1192,9 @@ class RadarBleManager private constructor(private val context: Context) {
                                 // 重启设备
                                 sendRestartCommand(client)
                             }
-                        }, 2000)
+                        }, COMMAND_DELAYTIME)
                     }
-                }, 2000)
+                }, COMMAND_DELAYTIME)
             }
 
             private fun sendRestartCommand(client: BlufiClient) {
@@ -993,7 +1226,7 @@ class RadarBleManager private constructor(private val context: Context) {
                         mainHandler.removeCallbacks(configTimeoutRunnable)
                         disconnect()
                     }
-                }, 5000)
+                }, DEVICERESTART_DELAYTIME)
             }
 
             override fun onReceiveCustomData(client: BlufiClient, status: Int, data: ByteArray) {

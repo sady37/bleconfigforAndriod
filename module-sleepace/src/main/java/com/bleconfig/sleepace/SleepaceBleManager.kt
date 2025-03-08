@@ -11,12 +11,8 @@ import com.sleepace.sdk.manager.CallbackData
 import com.sleepace.sdk.wificonfig.WiFiConfigHelper
 
 import com.common.DeviceInfo
-import com.common.Productor
-import com.common.FilterType
-import com.common.DeviceHistory
-import com.common.ServerConfig
-import com.common.WifiConfig
-import com.common.DefaultConfig
+import com.common.BleDeviceManager
+
 
 
 class SleepaceBleManager private constructor(context: Context) {
@@ -77,20 +73,6 @@ class SleepaceBleManager private constructor(context: Context) {
                                 "deviceId=${device.deviceId}, " +
                                 "macAddress=${device.macAddress}, " +
                                 "rssi=${device.rssi}")
-
-                        val bleDevice = device.originalDevice as? BleDevice
-                        bleDevice?.let {
-                            Log.d(TAG, "Original BleDevice details: " +
-                                    "btAddress=${it.btAddress}, " +
-                                    "modelName=${it.modelName}, " +
-                                    "address=${it.address}, " +
-                                    "deviceId=${it.deviceId}, " +
-                                    "deviceName=${it.deviceName}, " +
-                                    "productName=${it.productName}, " +
-                                    "deviceType=${it.deviceType}, " +
-                                    "versionCode=${it.versionCode}, " +
-                                    "versionName=${it.versionName}")
-                        }
 
                         val data = CallbackData<Any>()
                         data.status = StatusCode.SUCCESS

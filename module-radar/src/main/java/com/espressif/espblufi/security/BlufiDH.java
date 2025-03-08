@@ -59,7 +59,8 @@ public class BlufiDH {
         return mSecretKey;
     }
 
-    public void generateSecretKey(BigInteger y) {
+
+    /*public void generateSecretKey(BigInteger y) {
         try {
             DHPublicKeySpec pbks = new DHPublicKeySpec(y, mP, mG);
             KeyFactory keyFact = KeyFactory.getInstance("DH");
@@ -91,7 +92,51 @@ public class BlufiDH {
         } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException e) {
             Log.w(TAG, e);
         }
+    } */
+    public void generateSecretKey(BigInteger y) {
+        try {
+            Log.d(TAG, "Starting key generation - Input public key bit length: " + y.bitLength());
+            DHPublicKeySpec pbks = new DHPublicKeySpec(y, mP, mG);
+            KeyFactory keyFact = KeyFactory.getInstance("DH");
+            PublicKey publicKey = keyFact.generatePublic(pbks);
+            Log.d(TAG, "Successfully created public key");
+
+            // Prepare to generate key
+            KeyAgreement ka = KeyAgreement.getInstance("DH");
+            ka.init(mPrivateKey);
+            Log.d(TAG, "KeyAgreement initialization successful");
+            ka.doPhase(publicKey, true);
+            Log.d(TAG, "KeyAgreement phase completed");
+
+            // Generate key
+            byte[] tempSecret = ka.generateSecret();
+            Log.d(TAG, "Generated raw key - Length: " + tempSecret.length);
+
+            int offset = 0;
+            for (byte b : tempSecret) {
+                if (b == 0) {
+                    offset++;
+                } else {
+                    break;
+                }
+            }
+            Log.d(TAG, "Key leading zero bytes: " + offset);
+
+            byte[] secretKey;
+            if (offset == 0) {
+                secretKey = tempSecret;
+            } else {
+                secretKey = new byte[tempSecret.length - offset];
+                System.arraycopy(tempSecret, offset, secretKey, 0, tempSecret.length - offset);
+                Log.d(TAG, "Key length after removing leading zeros: " + secretKey.length);
+            }
+            mSecretKey = secretKey;
+            Log.d(TAG, "Key generation completed");
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException e) {
+            Log.e(TAG, "Exception during key generation", e);
+        }
     }
+
 
     private static Key[] generateKeys(BigInteger p, BigInteger g, int length) {
         try {

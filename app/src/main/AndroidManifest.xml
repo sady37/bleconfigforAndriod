@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-   <manifest  xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
 
 
     <!-- 基础蓝牙权限 -->
@@ -7,12 +9,15 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
 
     <!-- Android 12+ 蓝牙权限 -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <!-- 蓝牙扫描权限，声明不用于位置 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+         />
 
-    <!-- 定位权限 -->
+    <!-- 定位权限
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>  -->
 
     <!-- Wi-Fi权限 -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
@@ -26,12 +31,12 @@
         android:required="true"/>
 
     <application
-        android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        tools:ignore="UnusedAttribute">
         <activity
             android:name="com.wisefido.MainActivity"
             android:exported="true">
