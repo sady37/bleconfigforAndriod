@@ -1,18 +1,17 @@
 plugins {
-    id("com.android.library")
-    id("kotlin-android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
-    namespace = "com.common"
+    namespace = "com.radar.ble"
     compileSdk = 34
 
     defaultConfig {
-        minSdk = 31
-        targetSdk = 34
-
+        minSdk = 31 //28
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
     }
 
     buildTypes {
@@ -23,6 +22,10 @@ android {
                 "proguard-rules.pro"
             )
         }
+    }
+
+    buildFeatures {
+        viewBinding = true
     }
 
     compileOptions {
@@ -36,8 +39,17 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
 
+    // A 厂 SDK 依赖
+
+
+    // Android 基础库
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.material)
+
+    // 测试依赖
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }

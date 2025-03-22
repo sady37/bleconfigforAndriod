@@ -164,7 +164,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/input_height"
                 android:hint="@string/hint_server_address"
-                android:text="ipv4.owl.wisefido.com"
+                android:text="app.wisefido.com"
                 android:inputType="text"/>
         </com.google.android.material.textfield.TextInputLayout>
 
